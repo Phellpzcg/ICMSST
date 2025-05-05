@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar XML - ICMS ST</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .upload-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #f1c40f;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #333;
+            color: #f1c40f;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .mva-select {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Importar XML para Cálculo ICMS ST</h1>
+    <div class="upload-section">
+        <input type="file" id="xmlFileInput" accept=".xml">
+        <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
+    </div>
+
+    <table id="productTable">
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>NCM</th>
+                <th>Qtd</th>
+                <th>Valor Unit.</th>
+                <th>MVA</th>
+                <th>ICMS ST</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        let ncmMvaMap = {};
+        const ALQ_INTRA = 0.205;
+
+        fetch('ncm_mva.json')
+            .then(res => res.json())
+            .then(data => ncmMvaMap = data);
+
+        document.getElementById('xmlFileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(e.target.result, 'text/xml');
+                const products = xmlDoc.getElementsByTagName('prod');
+                const tbody = document.querySelector('#productTable tbody');
+                tbody.innerHTML = '';
+
+                for (let i = 0; i < products.length; i++) {
+                    const prod = products[i];
+                    const nome = prod.getElementsByTagName('xProd')[0]?.textContent || 'Produto';
+                    const qtd = parseFloat(prod.getElementsByTagName('qCom')[0]?.textContent || '0');
+                    const valorUnit = parseFloat(prod.getElementsByTagName('vUnCom')[0]?.textContent || '0');
+                    const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
+                    const prefixo = ncm.substring(0, 4);
+                    const categoria = ncmMvaMap[prefixo];
+                    const mvaValue = categoria?.mva || 0;
+                    const valorST = (valorUnit * (1 + mvaValue) * ALQ_INTRA).toFixed(2);
+
+                    const row = tbody.insertRow();
+                    row.insertCell(0).textContent = nome;
+                    row.insertCell(1).textContent = ncm;
+                    row.insertCell(2).textContent = qtd;
+                    row.insertCell(3).textContent = valorUnit.toFixed(2);
+                    const mvaCell = row.insertCell(4);
+
+                    const select = document.createElement('select');
+                    select.className = 'mva-select';
+                    for (const key in ncmMvaMap) {
+                        const option = document.createElement('option');
+                        option.value = ncmMvaMap[key].mva;
+                        option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
+                        if (key === prefixo) option.selected = true;
+                        select.appendChild(option);
+                    }
+                    mvaCell.appendChild(select);
+
+                    const stCell = row.insertCell(5);
+                    stCell.textContent = `R$ ${valorST}`;
+
+                    select.addEventListener('change', function() {
+                        const novaMva = parseFloat(this.value);
+                        const novoST = (valorUnit * (1 + novaMva) * ALQ_INTRA).toFixed(2);
+                        stCell.textContent = `R$ ${novoST}`;
+                    });
+                }
+            };
+            reader.readAsText(file);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "3001": {
+    "descricao": "Medicamentos homeopáticos",
+    "mva": 0.42
+  },
+  "3003": {
+    "descricao": "Medicamentos para uso humano",
+    "mva": 0.40
+  },
+  "3304": {
+    "descricao": "Produtos de beleza e maquiagem",
+    "mva": 0.65
+  },
+  "3401": {
+    "descricao": "Sabões e produtos de higiene",
+    "mva": 0.50
+  },
+  "4011": {
+    "descricao": "Fraldas descartáveis",
+    "mva": 0.30
+  },
+  "9018": {
+    "descricao": "Aparelhos médicos e cirúrgicos",
+    "mva": 0.31
+  }
+}
