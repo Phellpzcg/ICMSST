@@ -93,6 +93,8 @@
                 const tbody = document.querySelector('#productTable tbody');
                 tbody.innerHTML = '';
 
+                const CRT = xmlDoc.getElementsByTagName('CRT')[0]?.textContent || '';
+
                 for (let i = 0; i < products.length; i++) {
                     const prod = products[i];
                     const nome = prod.getElementsByTagName('xProd')[0]?.textContent || 'Produto';
@@ -101,8 +103,43 @@
                     const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
                     const prefixo = ncm.substring(0, 4);
                     const categoria = ncmMvaMap[prefixo];
-                    const mvaValue = categoria?.mva || 0;
-                    const valorST = (valorUnit * (1 + mvaValue) * ALQ_INTRA).toFixed(2);
+                    const imposto = prod.parentNode.querySelector('ICMS, ICMSSN101, ICMSSN102');
+                    let cst = '000';
+                    if (imposto) {
+                        const cstTag = imposto.querySelector('CST') || imposto.querySelector('CSOSN');
+                        if (cstTag) cst = cstTag.textContent.trim();
+                    }
+
+                    let mvaDisplay = '';
+                    let valorST = '';
+
+                    if (CRT === '1') {
+                        mvaDisplay = 'Fornecedor do Simples Nacional, verifique com a contabilidade o imposto da nota';
+                    } else if (CRT === '3' && ['10', '40', '41', '60'].includes(cst.slice(-2))) {
+                        const finalCST = cst.slice(-2);
+                        if (finalCST === '10' || finalCST === '60') mvaDisplay = 'ICMS cobrado anteriormente';
+                        if (finalCST === '40') mvaDisplay = 'Produto isento de ICMS';
+                        if (finalCST === '41') mvaDisplay = 'Produto não tributado';
+                    } else {
+                        const mvaValue = categoria?.mva || 0;
+                        const valorCalculado = (valorUnit * (1 + mvaValue) * ALQ_INTRA).toFixed(2);
+                        valorST = `R$ ${valorCalculado}`;
+
+                        mvaDisplay = document.createElement('select');
+                        mvaDisplay.className = 'mva-select';
+                        for (const key in ncmMvaMap) {
+                            const option = document.createElement('option');
+                            option.value = ncmMvaMap[key].mva;
+                            option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
+                            if (key === prefixo) option.selected = true;
+                            mvaDisplay.appendChild(option);
+                        }
+                        mvaDisplay.addEventListener('change', function() {
+                            const novaMva = parseFloat(this.value);
+                            const novoST = (valorUnit * (1 + novaMva) * ALQ_INTRA).toFixed(2);
+                            stCell.textContent = `R$ ${novoST}`;
+                        });
+                    }
 
                     const row = tbody.insertRow();
                     row.insertCell(0).textContent = nome;
@@ -110,26 +147,15 @@
                     row.insertCell(2).textContent = qtd;
                     row.insertCell(3).textContent = valorUnit.toFixed(2);
                     const mvaCell = row.insertCell(4);
-
-                    const select = document.createElement('select');
-                    select.className = 'mva-select';
-                    for (const key in ncmMvaMap) {
-                        const option = document.createElement('option');
-                        option.value = ncmMvaMap[key].mva;
-                        option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
-                        if (key === prefixo) option.selected = true;
-                        select.appendChild(option);
-                    }
-                    mvaCell.appendChild(select);
-
                     const stCell = row.insertCell(5);
-                    stCell.textContent = `R$ ${valorST}`;
 
-                    select.addEventListener('change', function() {
-                        const novaMva = parseFloat(this.value);
-                        const novoST = (valorUnit * (1 + novaMva) * ALQ_INTRA).toFixed(2);
-                        stCell.textContent = `R$ ${novoST}`;
-                    });
+                    if (typeof mvaDisplay === 'string') {
+                        mvaCell.textContent = mvaDisplay;
+                        stCell.textContent = '-';
+                    } else {
+                        mvaCell.appendChild(mvaDisplay);
+                        stCell.textContent = valorST;
+                    }
                 }
             };
             reader.readAsText(file);
