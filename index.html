@@ -1,176 +1,181 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Importar XML - ICMS ST</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f9f9f9;
-            color: #333;
-            padding: 0;
-            margin: 0;
-        }
-        header {
-            background-color: #000;
-            color: #f1c40f;
-            display: flex;
-            align-items: center;
-            padding: 10px 20px;
-        }
-        header img {
-            height: 50px;
-            margin-right: 20px;
-        }
-        header h1 {
-            font-size: 1.5rem;
-            margin: 0;
-        }
-        .upload-section {
-            text-align: center;
-            margin: 20px 0;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #f1c40f;
-            border: none;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        input[type="file"] {
-            display: none;
-        }
-        .info-box {
-            display: flex;
-            justify-content: space-around;
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            padding: 10px;
-            margin: 20px;
-            font-weight: bold;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 0 0 30px 0;
-            font-size: 12px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #333;
-            color: #f1c40f;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        .highlight-imposto {
-            background-color: #ffdddd;
-            font-weight: bold;
-        }
-        .highlight-custo {
-            background-color: #ddffdd;
-            font-weight: bold;
-        }
-        .mva-select {
-            width: 100%;
-        }
-        footer {
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            padding: 10px;
-            position: fixed;
-            width: 100%;
-            bottom: 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Importar XML - ICMS ST</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      padding: 0;
+      margin: 0;
+    }
+    header {
+      background-color: #000;
+      color: #f1c40f;
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+    }
+    header img {
+      height: 50px;
+      margin-right: 20px;
+    }
+    header h1 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    .upload-section {
+      text-align: center;
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #f1c40f;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .info-box {
+      display: flex;
+      justify-content: space-around;
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      padding: 10px;
+      margin: 20px;
+      font-weight: bold;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 30px 0;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #333;
+      color: #f1c40f;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    .highlight-imposto {
+      background-color: #ffdddd;
+      font-weight: bold;
+    }
+    .highlight-custo {
+      background-color: #ddffdd;
+      font-weight: bold;
+    }
+    .mva-select {
+      width: 100%;
+    }
+    footer {
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      padding: 10px;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <img src="img/logo.jpg" alt="Logo Domínio Farma">
-        <h1>Cálculo ICMS ST - Exclusivo para Farmácias</h1>
-    </header>
+  <header>
+    <img src="img/logo.jpg" alt="Logo Domínio Farma">
+    <h1>Cálculo ICMS ST - Exclusivo para Farmácias</h1>
+  </header>
 
-    <div class="upload-section">
-        <input type="file" id="xmlFileInput" accept=".xml">
-        <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
-    </div>
+  <div class="upload-section">
+    <input type="file" id="xmlFileInput" accept=".xml">
+    <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
+  </div>
 
-    <div class="info-box">
-        <span id="fornecedorInfo">Fornecedor: -</span>
-        <span id="notaInfo">Nota Fiscal: -</span>
-        <span id="totalImpostoInfo">Total Imposto: R$ 0,00</span>
-    </div>
+  <div class="info-box">
+    <span id="fornecedorInfo">Fornecedor: -</span>
+    <span id="notaInfo">Nota Fiscal: -</span>
+    <span id="totalImpostoInfo">Total Imposto: R$ 0,00</span>
+  </div>
 
-    <table id="productTable">
-        <thead>
-            <tr>
-                <th>Descrição</th>
-                <th>CFOP</th>
-                <th>CST</th>
-                <th>NCM</th>
-                <th>R$ Total Produto</th>
-                <th>Outros</th>
-                <th>IPI</th>
-                <th>Desconto</th>
-                <th>Categoria</th>
-                <th class="highlight-imposto">R$ Imposto</th>
-                <th>Total</th>
-                <th class="highlight-custo">Custo Final</th>
-                <th>% Efetivo</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+  <table id="productTable">
+    <thead>
+      <tr>
+        <th>Descrição</th>
+        <th>CFOP</th>
+        <th>CST</th>
+        <th>NCM</th>
+        <th>R$ Total Produto</th>
+        <th>Outros</th>
+        <th>IPI</th>
+        <th>Desconto</th>
+        <th>Categoria</th>
+        <th class="highlight-imposto">R$ Imposto</th>
+        <th>Total</th>
+        <th class="highlight-custo">Custo Final</th>
+        <th>% Efetivo</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-    <h2 style="text-align:center; margin-top: 40px;">Precificação de Produtos</h2>
-    <table id="pricingTable">
-        <thead>
-            <tr>
-                <th>Descrição</th>
-                <th>Custo Final</th>
-                <th>Margem (%)</th>
-                <th>Preço de Venda</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+  <h2 style="text-align:center; margin-top: 40px;">Precificação de Produtos</h2>
+  <table id="pricingTable">
+    <thead>
+      <tr>
+        <th>Descrição</th>
+        <th>Custo Final</th>
+        <th>Margem (%)</th>
+        <th>Preço de Venda</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-    <footer>
-        Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553
-    </footer>
+  <footer>
+    Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553
+  </footer>
 
-    <script>
-        // Ao preencher a tabela principal e calcular o custo final, adicione esta parte dentro do loop do produto:
-        const pricingTable = document.querySelector('#pricingTable tbody');
-        const pricingRow = pricingTable.insertRow();
-        pricingRow.insertCell().textContent = nome;
-        pricingRow.insertCell().textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  <script>
+    // Supondo que dentro do loop principal você já tem nome e custoFinal para cada produto:
+    function adicionarLinhaPrecificacao(nome, custoFinal) {
+      const pricingTable = document.getElementById('pricingTable').querySelector('tbody');
+      const pricingRow = pricingTable.insertRow();
 
-        const marginCell = pricingRow.insertCell();
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.min = 0;
-        input.max = 100;
-        input.placeholder = '0 a 100';
-        input.style.width = '80px';
+      pricingRow.insertCell().textContent = nome;
+      pricingRow.insertCell().textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-        const resultCell = pricingRow.insertCell();
-        resultCell.textContent = '-';
+      const marginCell = pricingRow.insertCell();
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = 0;
+      input.max = 100;
+      input.placeholder = '0 a 100';
+      input.style.width = '80px';
 
-        input.addEventListener('input', function () {
-            const margem = parseFloat(this.value);
-            const precoVenda = custoFinal * (1 + margem / 100);
-            resultCell.textContent = precoVenda.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        });
+      const resultCell = pricingRow.insertCell();
+      resultCell.textContent = '-';
 
-        marginCell.appendChild(input);
-    </script>
+      input.addEventListener('input', function () {
+        const margem = parseFloat(this.value);
+        if (!isNaN(margem)) {
+          const precoVenda = custoFinal * (1 + margem / 100);
+          resultCell.textContent = precoVenda.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+      });
+
+      marginCell.appendChild(input);
+    }
+  </script>
 </body>
 </html>
