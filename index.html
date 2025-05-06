@@ -275,5 +275,47 @@
             reader.readAsText(file);
         });
     </script>
+
+     <h2 style="text-align:center; margin-top: 40px;">Precificação de Produtos</h2>
+    <table id="pricingTable">
+        <thead>
+            <tr>
+                <th>Descrição</th>
+                <th>Custo Final</th>
+                <th>Margem (%)</th>
+                <th>Preço de Venda</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        // Após o fechamento do forEach dos produtos:
+        const pricingTable = document.querySelector('#pricingTable tbody');
+        const newRow = pricingTable.insertRow();
+
+        const nameCell = newRow.insertCell();
+        nameCell.textContent = nome;
+
+        const custoCell = newRow.insertCell();
+        custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        const inputCell = newRow.insertCell();
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = 0;
+        input.max = 100;
+        input.placeholder = '0 a 100';
+        input.style.width = '80px';
+        input.addEventListener('input', function () {
+            const margem = parseFloat(this.value);
+            const precoVenda = custoFinal * (1 + margem / 100);
+            resultCell.textContent = precoVenda.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        });
+        inputCell.appendChild(input);
+
+        const resultCell = newRow.insertCell();
+        resultCell.textContent = '-';
+    </script>
 </body>
 </html>
