@@ -1,180 +1,165 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Importar XML - ICMS ST</title>
-  <style>
-    body { font-family: Arial, sans-serif; background-color: #f9f9f9; color: #333; margin: 0; padding: 0; }
-    header { background-color: #000; color: #f1c40f; display: flex; align-items: center; padding: 10px 20px; }
-    header img { height: 50px; margin-right: 20px; }
-    header h1 { font-size: 1.5rem; margin: 0; }
-    .upload-section { text-align: center; margin: 20px 0; }
-    button { padding: 10px 20px; background-color: #f1c40f; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-    input[type="file"] { display: none; }
-    .info-box { display: flex; justify-content: space-around; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; margin: 20px; font-weight: bold; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background-color: #333; color: #f1c40f; }
-    tr:nth-child(even) { background-color: #f2f2f2; }
-    .highlight-imposto { background-color: #ffdddd; font-weight: bold; }
-    .highlight-custo { background-color: #ddffdd; font-weight: bold; }
-    footer { background-color: #333; color: #fff; text-align: center; padding: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar XML - ICMS ST</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .upload-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #f1c40f;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #333;
+            color: #f1c40f;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .mva-select {
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <img src="img/logo.jpg" alt="Logo Domínio Farma" />
-    <h1>Cálculo ICMS ST - Exclusivo para Farmácias</h1>
-  </header>
+    <h1>Importar XML para Cálculo ICMS ST</h1>
+    <div class="upload-section">
+        <input type="file" id="xmlFileInput" accept=".xml">
+        <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
+    </div>
 
-  <div class="upload-section">
-    <input type="file" id="xmlFileInput" accept=".xml" />
-    <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
-  </div>
+    <table id="productTable">
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>NCM</th>
+                <th>Qtd</th>
+                <th>Valor Unit.</th>
+                <th>MVA</th>
+                <th>ICMS ST</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
-  <div class="info-box">
-    <span id="fornecedorInfo">Fornecedor: -</span>
-    <span id="notaInfo">Nota Fiscal: -</span>
-    <span id="totalImpostoInfo">Total Imposto: R$ 0,00</span>
-  </div>
+    <script>
+        let ncmMvaMap = {};
+        const ALQ_INTRA = 0.205;
 
-  <table id="productTable">
-    <thead>
-      <tr>
-        <th>Descrição</th>
-        <th>CFOP</th>
-        <th>CST</th>
-        <th>NCM</th>
-        <th>R$ Total Produto</th>
-        <th>Outros</th>
-        <th>IPI</th>
-        <th>Desconto</th>
-        <th>Categoria</th>
-        <th class="highlight-imposto">R$ Imposto</th>
-        <th>Total</th>
-        <th class="highlight-custo">Custo Final</th>
-        <th>% Efetivo</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  <footer>
-    Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553
-  </footer>
+        fetch('ncm_mva.json')
+            .then(res => res.json())
+            .then(data => ncmMvaMap = data);
 
-  <script>
-    let mvaMap = {};
-    fetch('ncm_mva.json')
-      .then(res => res.json())
-      .then(data => mvaMap = data);
+        document.getElementById('xmlFileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-    document.getElementById('xmlFileInput').addEventListener('change', function(e) {
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(evt.target.result, 'text/xml');
-        const emit = xmlDoc.getElementsByTagName('emit')[0];
-        document.getElementById('fornecedorInfo').textContent = 'Fornecedor: ' + (emit?.getElementsByTagName('xNome')[0]?.textContent || '-');
-        document.getElementById('notaInfo').textContent = 'Nota Fiscal: ' + (xmlDoc.getElementsByTagName('nNF')[0]?.textContent || '-');
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(e.target.result, 'text/xml');
+                const products = xmlDoc.getElementsByTagName('prod');
+                const tbody = document.querySelector('#productTable tbody');
+                tbody.innerHTML = '';
 
-        const crt = xmlDoc.getElementsByTagName('CRT')[0]?.textContent || '3';
-        const produtos = xmlDoc.getElementsByTagName('det');
-        const tbody = document.querySelector('#productTable tbody');
-        tbody.innerHTML = '';
-        let totalImposto = 0;
+                const CRT = xmlDoc.getElementsByTagName('CRT')[0]?.textContent || '';
 
-        for (const item of produtos) {
-          const prod = item.getElementsByTagName('prod')[0];
-          const imposto = item.getElementsByTagName('imposto')[0];
-          const nome = prod.getElementsByTagName('xProd')[0]?.textContent || '-';
-          const cfop = prod.getElementsByTagName('CFOP')[0]?.textContent || '-';
-          const cst = imposto?.querySelector('CST')?.textContent || imposto?.querySelector('CSOSN')?.textContent || '-';
-          const cstFinal = cst.slice(-2);
-          const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
-          const chaveNCM = ncm.substring(0, 4);
-          let mvaBase = mvaMap[chaveNCM]?.mva || 0;
+                for (let i = 0; i < products.length; i++) {
+                    const prod = products[i];
+                    const nome = prod.getElementsByTagName('xProd')[0]?.textContent || 'Produto';
+                    const qtd = parseFloat(prod.getElementsByTagName('qCom')[0]?.textContent || '0');
+                    const valorUnit = parseFloat(prod.getElementsByTagName('vUnCom')[0]?.textContent || '0');
+                    const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
+                    const prefixo = ncm.substring(0, 4);
+                    const categoria = ncmMvaMap[prefixo];
+                    const imposto = prod.parentNode.querySelector('ICMS, ICMSSN101, ICMSSN102');
+                    let cst = '000';
+                    if (imposto) {
+                        const cstTag = imposto.querySelector('CST') || imposto.querySelector('CSOSN');
+                        if (cstTag) cst = cstTag.textContent.trim();
+                    }
 
-          const vProd = parseFloat(prod.getElementsByTagName('vProd')[0]?.textContent || '0');
-          const vIPI = parseFloat(imposto?.getElementsByTagName('vIPI')[0]?.textContent || '0');
-          const vOutro = parseFloat(prod.getElementsByTagName('vOutro')[0]?.textContent || '0');
-          const vDesc = parseFloat(prod.getElementsByTagName('vDesc')[0]?.textContent || '0');
-          const vFrete = parseFloat(prod.getElementsByTagName('vFrete')[0]?.textContent || '0');
-          const vICMS = parseFloat(imposto?.querySelector('ICMS > * > vICMS')?.textContent || '0');
+                    let mvaDisplay = '';
+                    let valorST = '';
 
-          const base = vProd + vIPI + vFrete + vOutro - vDesc;
-          const ALQ_INTRA = 0.205, ALQ_INTER = 0.12;
-          let mvaAjustada = (cfop.startsWith('6')) ? ((1 + mvaBase) * (1 - ALQ_INTER) / (1 - ALQ_INTRA)) - 1 : mvaBase;
+                    if (CRT === '1') {
+                        mvaDisplay = 'Fornecedor do Simples Nacional, verifique com a contabilidade o imposto da nota';
+                    } else if (CRT === '3' && ['10', '40', '41', '60'].includes(cst.slice(-2))) {
+                        const finalCST = cst.slice(-2);
+                        if (finalCST === '10' || finalCST === '60') mvaDisplay = 'ICMS cobrado anteriormente';
+                        if (finalCST === '40') mvaDisplay = 'Produto isento de ICMS';
+                        if (finalCST === '41') mvaDisplay = 'Produto não tributado';
+                    } else {
+                        const mvaValue = categoria?.mva || 0;
+                        const valorCalculado = (valorUnit * (1 + mvaValue) * ALQ_INTRA).toFixed(2);
+                        valorST = `R$ ${valorCalculado}`;
 
-          let impostoCalc = (base * mvaAjustada * ALQ_INTRA) - vICMS;
-          if (['10', '60', '40', '41'].includes(cstFinal) || crt === '1') impostoCalc = 0;
+                        mvaDisplay = document.createElement('select');
+                        mvaDisplay.className = 'mva-select';
+                        for (const key in ncmMvaMap) {
+                            const option = document.createElement('option');
+                            option.value = ncmMvaMap[key].mva;
+                            option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
+                            if (key === prefixo) option.selected = true;
+                            mvaDisplay.appendChild(option);
+                        }
+                        mvaDisplay.addEventListener('change', function() {
+                            const novaMva = parseFloat(this.value);
+                            const novoST = (valorUnit * (1 + novaMva) * ALQ_INTRA).toFixed(2);
+                            stCell.textContent = `R$ ${novoST}`;
+                        });
+                    }
 
-          impostoCalc = Math.max(impostoCalc, 0);
-          const total = base + impostoCalc;
-          const qtd = parseFloat(prod.getElementsByTagName('qCom')[0]?.textContent || '1');
-          const custoFinal = total / qtd;
-          const efetivo = (vProd > 0) ? (impostoCalc / vProd) * 100 : 0;
+                    const row = tbody.insertRow();
+                    row.insertCell(0).textContent = nome;
+                    row.insertCell(1).textContent = ncm;
+                    row.insertCell(2).textContent = qtd;
+                    row.insertCell(3).textContent = valorUnit.toFixed(2);
+                    const mvaCell = row.insertCell(4);
+                    const stCell = row.insertCell(5);
 
-          const row = tbody.insertRow();
-          row.innerHTML = `
-            <td>${nome}</td>
-            <td>${cfop}</td>
-            <td>${cst}</td>
-            <td>${ncm}</td>
-            <td>R$ ${vProd.toFixed(2)}</td>
-            <td>R$ ${vOutro.toFixed(2)}</td>
-            <td>R$ ${vIPI.toFixed(2)}</td>
-            <td>R$ ${vDesc.toFixed(2)}</td>
-            <td></td>
-            <td class="highlight-imposto">R$ ${impostoCalc.toFixed(2)}</td>
-            <td>R$ ${total.toFixed(2)}</td>
-            <td class="highlight-custo">R$ ${custoFinal.toFixed(2)}</td>
-            <td>${efetivo.toFixed(2)}%</td>`;
-
-          const select = document.createElement('select');
-          for (const key in mvaMap) {
-            const opt = document.createElement('option');
-            opt.value = key;
-            opt.textContent = `${key} - ${mvaMap[key].descricao} (${(mvaMap[key].mva * 100).toFixed(2)}%)`;
-            if (key === chaveNCM) opt.selected = true;
-            select.appendChild(opt);
-          }
-
-          select.addEventListener('change', () => {
-            const novaMva = parseFloat(mvaMap[select.value].mva);
-            let novaMvaAjustada = (cfop.startsWith('6')) ? ((1 + novaMva) * (1 - ALQ_INTER) / (1 - ALQ_INTRA)) - 1 : novaMva;
-            let novoImposto = (base * novaMvaAjustada * ALQ_INTRA) - vICMS;
-            if (['10', '60', '40', '41'].includes(cstFinal) || crt === '1') novoImposto = 0;
-
-            novoImposto = Math.max(novoImposto, 0);
-            const novoTotal = base + novoImposto;
-            const novoCusto = novoTotal / qtd;
-            const novoEfetivo = (vProd > 0) ? (novoImposto / vProd) * 100 : 0;
-
-            row.cells[9].textContent = `R$ ${novoImposto.toFixed(2)}`;
-            row.cells[10].textContent = `R$ ${novoTotal.toFixed(2)}`;
-            row.cells[11].textContent = `R$ ${novoCusto.toFixed(2)}`;
-            row.cells[12].textContent = `${novoEfetivo.toFixed(2)}%`;
-            atualizarTotal();
-          });
-
-          row.cells[8].appendChild(select);
-          totalImposto += impostoCalc;
-        }
-
-        function atualizarTotal() {
-          let total = 0;
-          document.querySelectorAll('#productTable tbody tr').forEach(tr => {
-            const valor = parseFloat(tr.cells[9].textContent.replace('R$', '').replace(',', '.')) || 0;
-            total += valor;
-          });
-          document.getElementById('totalImpostoInfo').textContent = `Total Imposto: R$ ${total.toFixed(2)}`;
-        }
-
-        document.getElementById('totalImpostoInfo').textContent = `Total Imposto: R$ ${totalImposto.toFixed(2)}`;
-      };
-      reader.readAsText(e.target.files[0]);
-    });
-  </script>
+                    if (typeof mvaDisplay === 'string') {
+                        mvaCell.textContent = mvaDisplay;
+                        stCell.textContent = '-';
+                    } else {
+                        mvaCell.appendChild(mvaDisplay);
+                        stCell.textContent = valorST;
+                    }
+                }
+            };
+            reader.readAsText(file);
+        });
+    </script>
 </body>
 </html>
