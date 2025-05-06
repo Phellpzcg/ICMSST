@@ -83,9 +83,6 @@
       text-align: center;
       padding: 10px;
     }
-    input.mva-input {
-      width: 60px;
-    }
   </style>
 </head>
 <body>
@@ -128,19 +125,6 @@
     <tbody></tbody>
   </table>
 
-  <h2 style="text-align:center; margin-top: 40px;">Precificação de Produtos</h2>
-  <table id="pricingTable">
-    <thead>
-      <tr>
-        <th>Descrição</th>
-        <th>Custo Final</th>
-        <th>Margem (%)</th>
-        <th>Preço de Venda</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
   <footer>
     Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553
   </footer>
@@ -150,7 +134,10 @@
     document.getElementById('jsonFileInput').addEventListener('change', function(e) {
       const reader = new FileReader();
       reader.onload = function(evt) {
-        mvaMap = JSON.parse(evt.target.result);
+        const json = JSON.parse(evt.target.result);
+        for (const cap in json) {
+          mvaMap[cap] = json[cap].mva;
+        }
         alert('Arquivo JSON MVA carregado com sucesso!');
       };
       reader.readAsText(e.target.files[0]);
@@ -168,9 +155,7 @@
         const crt = xmlDoc.getElementsByTagName('CRT')[0]?.textContent || '3';
         const produtos = xmlDoc.getElementsByTagName('det');
         const tbody = document.querySelector('#productTable tbody');
-        const pricingBody = document.querySelector('#pricingTable tbody');
         tbody.innerHTML = '';
-        pricingBody.innerHTML = '';
         let totalImposto = 0;
 
         for (const item of produtos) {
@@ -198,10 +183,10 @@
           }
 
           let impostoCalc = (base * mvaAjustada * ALQ_INTRA) - vICMS;
-          if (['10', '60'].includes(cst)) mvaAjustada = 0, impostoCalc = 0;
-          if (['40'].includes(cst)) mvaAjustada = 0, impostoCalc = 0;
-          if (['41'].includes(cst)) mvaAjustada = 0, impostoCalc = 0;
-          if (crt === '1') mvaAjustada = 0, impostoCalc = 0;
+          if (['10', '60'].includes(cst)) impostoCalc = 0, mvaAjustada = 0;
+          if (['40'].includes(cst)) impostoCalc = 0, mvaAjustada = 0;
+          if (['41'].includes(cst)) impostoCalc = 0, mvaAjustada = 0;
+          if (crt === '1') impostoCalc = 0, mvaAjustada = 0;
 
           impostoCalc = Math.max(impostoCalc, 0);
           const total = base + impostoCalc;
@@ -219,35 +204,11 @@
             <td>R$ ${vOutro.toFixed(2)}</td>
             <td>R$ ${vIPI.toFixed(2)}</td>
             <td>R$ ${vDesc.toFixed(2)}</td>
-            <td><input type="number" class="mva-input" value="${(mvaBase * 100).toFixed(2)}" onchange="this.closest('tr').querySelector('.highlight-imposto').textContent = 'R$ ' + (((${base}) * (this.value/100) * ${ALQ_INTRA}) - ${vICMS}).toFixed(2)"></td>
+            <td>${(mvaAjustada * 100).toFixed(2)}%</td>
             <td class="highlight-imposto">R$ ${impostoCalc.toFixed(2)}</td>
             <td>R$ ${total.toFixed(2)}</td>
             <td class="highlight-custo">R$ ${custoFinal.toFixed(2)}</td>
             <td>${efetivo.toFixed(2)}%</td>`;
-
-          const pricingRow = pricingBody.insertRow();
-          pricingRow.insertCell().textContent = nome;
-          pricingRow.insertCell().textContent = `R$ ${custoFinal.toFixed(2)}`;
-
-          const marginCell = pricingRow.insertCell();
-          const input = document.createElement('input');
-          input.type = 'number';
-          input.min = 0;
-          input.max = 100;
-          input.placeholder = '0 a 100';
-          input.style.width = '80px';
-
-          const resultCell = pricingRow.insertCell();
-          resultCell.textContent = '-';
-
-          input.addEventListener('input', function () {
-            const margem = parseFloat(this.value);
-            if (!isNaN(margem)) {
-              const precoVenda = custoFinal * (1 + margem / 100);
-              resultCell.textContent = precoVenda.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            }
-          });
-          marginCell.appendChild(input);
 
           totalImposto += impostoCalc;
         }
