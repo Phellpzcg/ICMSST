@@ -9,11 +9,23 @@
             font-family: Arial, sans-serif;
             background-color: #f9f9f9;
             color: #333;
-            padding: 20px;
+            padding: 0;
+            margin: 0;
         }
-        h1 {
-            text-align: center;
-            color: #333;
+        header {
+            background-color: #000;
+            color: #f1c40f;
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+        }
+        header img {
+            height: 50px;
+            margin-right: 20px;
+        }
+        header h1 {
+            font-size: 1.5rem;
+            margin: 0;
         }
         .upload-section {
             text-align: center;
@@ -30,14 +42,24 @@
         input[type="file"] {
             display: none;
         }
+        .info-box {
+            display: flex;
+            justify-content: space-around;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 10px;
+            margin: 20px;
+            font-weight: bold;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 30px;
+            margin: 0 0 30px 0;
+            font-size: 12px;
         }
         th, td {
             border: 1px solid #ccc;
-            padding: 10px;
+            padding: 8px;
             text-align: left;
         }
         th {
@@ -47,35 +69,73 @@
         tr:nth-child(even) {
             background-color: #f2f2f2;
         }
+        .highlight-imposto {
+            background-color: #ffdddd;
+            font-weight: bold;
+        }
+        .highlight-custo {
+            background-color: #ddffdd;
+            font-weight: bold;
+        }
         .mva-select {
             width: 100%;
+        }
+        footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
         }
     </style>
 </head>
 <body>
-    <h1>Importar XML para Cálculo ICMS ST</h1>
+    <header>
+        <img src="img/logo.jpg" alt="Logo Domínio Farma">
+        <h1>Cálculo ICMS ST - Exclusivo para Farmácias</h1>
+    </header>
+
     <div class="upload-section">
         <input type="file" id="xmlFileInput" accept=".xml">
         <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
     </div>
 
+    <div class="info-box">
+        <span id="fornecedorInfo">Fornecedor: -</span>
+        <span id="notaInfo">Nota Fiscal: -</span>
+        <span id="totalImpostoInfo">Total Imposto: R$ 0,00</span>
+    </div>
+
     <table id="productTable">
         <thead>
             <tr>
-                <th>Produto</th>
+                <th>Descrição</th>
+                <th>CFOP</th>
+                <th>CST</th>
                 <th>NCM</th>
-                <th>Qtd</th>
-                <th>Valor Unit.</th>
-                <th>MVA</th>
-                <th>ICMS ST</th>
+                <th>R$ Total Produto</th>
+                <th>Outros</th>
+                <th>IPI</th>
+                <th>Desconto</th>
+                <th>Categoria</th>
+                <th class="highlight-imposto">R$ Imposto</th>
+                <th>Total</th>
+                <th class="highlight-custo">Custo Final</th>
+                <th>% Efetivo</th>
             </tr>
         </thead>
         <tbody></tbody>
     </table>
 
+    <footer>
+        Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553
+    </footer>
+
     <script>
         let ncmMvaMap = {};
-        const ALQ_INTRA = 0.205;
+        const ALQ_FIXA = 0.205;
 
         fetch('ncm_mva.json')
             .then(res => res.json())
@@ -92,6 +152,12 @@
                 const products = xmlDoc.getElementsByTagName('prod');
                 const tbody = document.querySelector('#productTable tbody');
                 tbody.innerHTML = '';
+                let totalImpostoNota = 0;
+
+                const fornecedor = xmlDoc.querySelector('emit > xNome')?.textContent || '-';
+                const numeroNota = xmlDoc.querySelector('ide > nNF')?.textContent || '-';
+                document.getElementById('fornecedorInfo').textContent = `Fornecedor: ${fornecedor}`;
+                document.getElementById('notaInfo').textContent = `Nota Fiscal: ${numeroNota}`;
 
                 const CRT = xmlDoc.getElementsByTagName('CRT')[0]?.textContent || '';
 
@@ -99,64 +165,112 @@
                     const prod = products[i];
                     const nome = prod.getElementsByTagName('xProd')[0]?.textContent || 'Produto';
                     const qtd = parseFloat(prod.getElementsByTagName('qCom')[0]?.textContent || '0');
-                    const valorUnit = parseFloat(prod.getElementsByTagName('vUnCom')[0]?.textContent || '0');
+                    const valorProd = parseFloat(prod.getElementsByTagName('vProd')[0]?.textContent || '0');
+                    const frete = parseFloat(prod.getElementsByTagName('vFrete')[0]?.textContent || '0');
+                    const outros = parseFloat(prod.getElementsByTagName('vOutro')[0]?.textContent || '0');
+                    const ipi = parseFloat(prod.getElementsByTagName('vIPI')[0]?.textContent || '0');
+                    const desconto = parseFloat(prod.getElementsByTagName('vDesc')[0]?.textContent || '0');
+                    const cfop = prod.getElementsByTagName('CFOP')[0]?.textContent || '';
                     const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
                     const prefixo = ncm.substring(0, 4);
                     const categoria = ncmMvaMap[prefixo];
-                    const imposto = prod.parentNode.querySelector('ICMS, ICMSSN101, ICMSSN102');
+
+                    const impostoTag = prod.parentNode.querySelector('ICMS, ICMSSN101, ICMSSN102');
                     let cst = '000';
-                    if (imposto) {
-                        const cstTag = imposto.querySelector('CST') || imposto.querySelector('CSOSN');
+                    let vICMS = 0;
+                    let alqInter = 0.12;
+                    if (impostoTag) {
+                        const cstTag = impostoTag.querySelector('CST') || impostoTag.querySelector('CSOSN');
                         if (cstTag) cst = cstTag.textContent.trim();
+                        const vICMSTag = impostoTag.querySelector('vICMS');
+                        if (vICMSTag) vICMS = parseFloat(vICMSTag.textContent);
+                        const alqTag = impostoTag.querySelector('pICMS');
+                        if (alqTag) alqInter = parseFloat(alqTag.textContent) / 100;
                     }
 
-                    let mvaDisplay = '';
-                    let valorST = '';
+                    let row = tbody.insertRow();
+                    row.insertCell(0).textContent = nome;
+                    row.insertCell(1).textContent = cfop;
+                    row.insertCell(2).textContent = cst;
+                    row.insertCell(3).textContent = ncm;
+                    row.insertCell(4).textContent = valorProd.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    row.insertCell(5).textContent = outros.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    row.insertCell(6).textContent = ipi.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    row.insertCell(7).textContent = desconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+                    const categoriaCell = row.insertCell(8);
+                    const impostoCell = row.insertCell(9);
+                    const totalCell = row.insertCell(10);
+                    const custoCell = row.insertCell(11);
+                    const efetivoCell = row.insertCell(12);
 
                     if (CRT === '1') {
-                        mvaDisplay = 'Fornecedor do Simples Nacional, verifique com a contabilidade o imposto da nota';
+                        categoriaCell.textContent = 'Fornecedor do Simples Nacional, verifique com a contabilidade o imposto da nota';
+                        impostoCell.textContent = '-';
+                        totalCell.textContent = '-';
+                        custoCell.textContent = '-';
+                        efetivoCell.textContent = '-';
                     } else if (CRT === '3' && ['10', '40', '41', '60'].includes(cst.slice(-2))) {
                         const finalCST = cst.slice(-2);
-                        if (finalCST === '10' || finalCST === '60') mvaDisplay = 'ICMS cobrado anteriormente';
-                        if (finalCST === '40') mvaDisplay = 'Produto isento de ICMS';
-                        if (finalCST === '41') mvaDisplay = 'Produto não tributado';
+                        if (finalCST === '10' || finalCST === '60') categoriaCell.textContent = 'ICMS cobrado anteriormente';
+                        if (finalCST === '40') categoriaCell.textContent = 'Produto isento de ICMS';
+                        if (finalCST === '41') categoriaCell.textContent = 'Produto não tributado';
+                        impostoCell.textContent = '-';
+                        totalCell.textContent = '-';
+                        custoCell.textContent = '-';
+                        efetivoCell.textContent = '-';
                     } else {
-                        const mvaValue = categoria?.mva || 0;
-                        const valorCalculado = (valorUnit * (1 + mvaValue) * ALQ_INTRA).toFixed(2);
-                        valorST = `R$ ${valorCalculado}`;
+                        const mvaOriginal = categoria?.mva || 0;
+                        const mvaAjustada = cfop.startsWith('6') 
+                            ? (((1 + mvaOriginal) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1 
+                            : mvaOriginal;
 
-                        mvaDisplay = document.createElement('select');
-                        mvaDisplay.className = 'mva-select';
+                        let baseCalculo = valorProd + frete + ipi + outros - desconto;
+                        let icmsST = ((baseCalculo * (1 + mvaAjustada)) * ALQ_FIXA) - vICMS;
+                        totalImpostoNota += icmsST;
+
+                        let total = baseCalculo + icmsST;
+                        let custoFinal = qtd > 0 ? total / qtd : 0;
+                        let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
+
+                        const select = document.createElement('select');
+                        select.className = 'mva-select';
                         for (const key in ncmMvaMap) {
                             const option = document.createElement('option');
                             option.value = ncmMvaMap[key].mva;
                             option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
                             if (key === prefixo) option.selected = true;
-                            mvaDisplay.appendChild(option);
+                            select.appendChild(option);
                         }
-                        mvaDisplay.addEventListener('change', function() {
+                        categoriaCell.appendChild(select);
+
+                        impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        impostoCell.className = 'highlight-imposto';
+                        totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        custoCell.className = 'highlight-custo';
+                        efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
+
+                        select.addEventListener('change', function () {
                             const novaMva = parseFloat(this.value);
-                            const novoST = (valorUnit * (1 + novaMva) * ALQ_INTRA).toFixed(2);
-                            stCell.textContent = `R$ ${novoST}`;
+                            const novaMvaAjustada = cfop.startsWith('6') 
+                                ? (((1 + novaMva) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1 
+                                : novaMva;
+
+                            icmsST = ((baseCalculo * (1 + novaMvaAjustada)) * ALQ_FIXA) - vICMS;
+                            total = baseCalculo + icmsST;
+                            custoFinal = qtd > 0 ? total / qtd : 0;
+                            percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
+
+                            impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
                         });
                     }
-
-                    const row = tbody.insertRow();
-                    row.insertCell(0).textContent = nome;
-                    row.insertCell(1).textContent = ncm;
-                    row.insertCell(2).textContent = qtd;
-                    row.insertCell(3).textContent = valorUnit.toFixed(2);
-                    const mvaCell = row.insertCell(4);
-                    const stCell = row.insertCell(5);
-
-                    if (typeof mvaDisplay === 'string') {
-                        mvaCell.textContent = mvaDisplay;
-                        stCell.textContent = '-';
-                    } else {
-                        mvaCell.appendChild(mvaDisplay);
-                        stCell.textContent = valorST;
-                    }
                 }
+
+                document.getElementById('totalImpostoInfo').textContent = `Total Imposto: ${totalImpostoNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
             };
             reader.readAsText(file);
         });
