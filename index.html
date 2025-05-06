@@ -124,30 +124,7 @@
                         if (cstTag) cst = cstTag.textContent.trim();
                     }
 
-                    let categoriaDisplay = '';
-                    let impostoValor = 0;
-                    let total = 0;
-                    let custoFinal = 0;
-                    let percEfetivo = 0;
-
-                    if (CRT === '1') {
-                        categoriaDisplay = 'Fornecedor do Simples Nacional, verifique com a contabilidade o imposto da nota';
-                    } else if (CRT === '3' && ['10', '40', '41', '60'].includes(cst.slice(-2))) {
-                        const finalCST = cst.slice(-2);
-                        if (finalCST === '10' || finalCST === '60') categoriaDisplay = 'ICMS cobrado anteriormente';
-                        if (finalCST === '40') categoriaDisplay = 'Produto isento de ICMS';
-                        if (finalCST === '41') categoriaDisplay = 'Produto não tributado';
-                    } else {
-                        const mvaValue = categoria?.mva || 0;
-                        impostoValor = ((valorProd + ipi + outros - desconto) * mvaValue * ALQ_INTRA);
-                        total = valorProd + ipi + outros - desconto + impostoValor;
-                        custoFinal = qtd > 0 ? total / qtd : 0;
-                        percEfetivo = total > 0 ? (impostoValor / total) * 100 : 0;
-
-                        categoriaDisplay = `${prefixo} - ${categoria?.descricao || 'Sem categoria'} (${(mvaValue * 100).toFixed(2)}%)`;
-                    }
-
-                    const row = tbody.insertRow();
+                    let row = tbody.insertRow();
                     row.insertCell(0).textContent = nome;
                     row.insertCell(1).textContent = cfop;
                     row.insertCell(2).textContent = cst;
@@ -156,11 +133,64 @@
                     row.insertCell(5).textContent = outros.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                     row.insertCell(6).textContent = ipi.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                     row.insertCell(7).textContent = desconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    row.insertCell(8).textContent = categoriaDisplay;
-                    row.insertCell(9).textContent = impostoValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    row.insertCell(10).textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    row.insertCell(11).textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    row.insertCell(12).textContent = percEfetivo.toFixed(2) + '%';
+
+                    const categoriaCell = row.insertCell(8);
+                    const impostoCell = row.insertCell(9);
+                    const totalCell = row.insertCell(10);
+                    const custoCell = row.insertCell(11);
+                    const efetivoCell = row.insertCell(12);
+
+                    if (CRT === '1') {
+                        categoriaCell.textContent = 'Fornecedor do Simples Nacional, verifique com a contabilidade o imposto da nota';
+                        impostoCell.textContent = '-';
+                        totalCell.textContent = '-';
+                        custoCell.textContent = '-';
+                        efetivoCell.textContent = '-';
+                    } else if (CRT === '3' && ['10', '40', '41', '60'].includes(cst.slice(-2))) {
+                        const finalCST = cst.slice(-2);
+                        if (finalCST === '10' || finalCST === '60') categoriaCell.textContent = 'ICMS cobrado anteriormente';
+                        if (finalCST === '40') categoriaCell.textContent = 'Produto isento de ICMS';
+                        if (finalCST === '41') categoriaCell.textContent = 'Produto não tributado';
+                        impostoCell.textContent = '-';
+                        totalCell.textContent = '-';
+                        custoCell.textContent = '-';
+                        efetivoCell.textContent = '-';
+                    } else {
+                        const mvaValue = categoria?.mva || 0;
+                        let impostoValor = ((valorProd + ipi + outros - desconto) * mvaValue * ALQ_INTRA);
+                        let total = valorProd + ipi + outros - desconto + impostoValor;
+                        let custoFinal = qtd > 0 ? total / qtd : 0;
+                        let percEfetivo = total > 0 ? (impostoValor / total) * 100 : 0;
+
+                        const select = document.createElement('select');
+                        select.className = 'mva-select';
+                        for (const key in ncmMvaMap) {
+                            const option = document.createElement('option');
+                            option.value = ncmMvaMap[key].mva;
+                            option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
+                            if (key === prefixo) option.selected = true;
+                            select.appendChild(option);
+                        }
+                        categoriaCell.appendChild(select);
+
+                        impostoCell.textContent = impostoValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
+
+                        select.addEventListener('change', function () {
+                            const novaMva = parseFloat(this.value);
+                            impostoValor = ((valorProd + ipi + outros - desconto) * novaMva * ALQ_INTRA);
+                            total = valorProd + ipi + outros - desconto + impostoValor;
+                            custoFinal = qtd > 0 ? total / qtd : 0;
+                            percEfetivo = total > 0 ? (impostoValor / total) * 100 : 0;
+
+                            impostoCell.textContent = impostoValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
+                        });
+                    }
                 }
             };
             reader.readAsText(file);
