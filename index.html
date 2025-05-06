@@ -120,11 +120,14 @@
                     const impostoTag = prod.parentNode.querySelector('ICMS, ICMSSN101, ICMSSN102');
                     let cst = '000';
                     let vICMS = 0;
+                    let alqInter = 0.12;
                     if (impostoTag) {
                         const cstTag = impostoTag.querySelector('CST') || impostoTag.querySelector('CSOSN');
                         if (cstTag) cst = cstTag.textContent.trim();
                         const vICMSTag = impostoTag.querySelector('vICMS');
                         if (vICMSTag) vICMS = parseFloat(vICMSTag.textContent);
+                        const alqTag = impostoTag.querySelector('pICMS');
+                        if (alqTag) alqInter = parseFloat(alqTag.textContent) / 100;
                     }
 
                     let row = tbody.insertRow();
@@ -159,9 +162,10 @@
                         custoCell.textContent = '-';
                         efetivoCell.textContent = '-';
                     } else {
-                        const mvaValue = categoria?.mva || 0;
+                        const mvaOriginal = categoria?.mva || 0;
+                        const mvaAjustada = cfop.startsWith('6') ? (((1 + mvaOriginal) * (1 - alqInter)) / (1 - ALQ_FIXA) - 1) : mvaOriginal;
                         let baseCalculo = valorProd + frete + ipi + outros - desconto;
-                        let icmsST = ((baseCalculo * (1 + mvaValue)) * ALQ_FIXA) - vICMS;
+                        let icmsST = ((baseCalculo * (1 + mvaAjustada)) * ALQ_FIXA) - vICMS;
                         let total = baseCalculo + icmsST;
                         let custoFinal = qtd > 0 ? total / qtd : 0;
                         let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
@@ -184,7 +188,8 @@
 
                         select.addEventListener('change', function () {
                             const novaMva = parseFloat(this.value);
-                            icmsST = ((baseCalculo * (1 + novaMva)) * ALQ_FIXA) - vICMS;
+                            const novaMvaAjustada = cfop.startsWith('6') ? (((1 + novaMva) * (1 - alqInter)) / (1 - ALQ_FIXA) - 1) : novaMva;
+                            icmsST = ((baseCalculo * (1 + novaMvaAjustada)) * ALQ_FIXA) - vICMS;
                             total = baseCalculo + icmsST;
                             custoFinal = qtd > 0 ? total / qtd : 0;
                             percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
