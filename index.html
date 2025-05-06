@@ -90,6 +90,7 @@
           const nome = prod.getElementsByTagName('xProd')[0]?.textContent || '-';
           const cfop = prod.getElementsByTagName('CFOP')[0]?.textContent || '-';
           const cst = imposto?.querySelector('CST')?.textContent || imposto?.querySelector('CSOSN')?.textContent || '-';
+          const cstFinal = cst.slice(-2);
           const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
           const chaveNCM = ncm.substring(0, 4);
           let mvaBase = mvaMap[chaveNCM]?.mva || 0;
@@ -106,7 +107,7 @@
           let mvaAjustada = (cfop.startsWith('6')) ? ((1 + mvaBase) * (1 - ALQ_INTER) / (1 - ALQ_INTRA)) - 1 : mvaBase;
 
           let impostoCalc = (base * mvaAjustada * ALQ_INTRA) - vICMS;
-          if (['10', '60', '40', '41'].includes(cst) || crt === '1') impostoCalc = 0;
+          if (['10', '60', '40', '41'].includes(cstFinal) || crt === '1') impostoCalc = 0;
 
           impostoCalc = Math.max(impostoCalc, 0);
           const total = base + impostoCalc;
@@ -143,7 +144,7 @@
             const novaMva = parseFloat(mvaMap[select.value].mva);
             let novaMvaAjustada = (cfop.startsWith('6')) ? ((1 + novaMva) * (1 - ALQ_INTER) / (1 - ALQ_INTRA)) - 1 : novaMva;
             let novoImposto = (base * novaMvaAjustada * ALQ_INTRA) - vICMS;
-            if (['10', '60', '40', '41'].includes(cst) || crt === '1') novoImposto = 0;
+            if (['10', '60', '40', '41'].includes(cstFinal) || crt === '1') novoImposto = 0;
 
             novoImposto = Math.max(novoImposto, 0);
             const novoTotal = base + novoImposto;
