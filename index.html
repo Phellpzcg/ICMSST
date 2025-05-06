@@ -9,8 +9,8 @@
       font-family: Arial, sans-serif;
       background-color: #f9f9f9;
       color: #333;
-      padding: 0;
       margin: 0;
+      padding: 0;
     }
     header {
       background-color: #000;
@@ -83,6 +83,9 @@
       text-align: center;
       padding: 10px;
     }
+    input.mva-input {
+      width: 60px;
+    }
   </style>
 </head>
 <body>
@@ -93,7 +96,9 @@
 
   <div class="upload-section">
     <input type="file" id="xmlFileInput" accept=".xml">
+    <input type="file" id="jsonFileInput" accept=".json">
     <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
+    <button onclick="document.getElementById('jsonFileInput').click()">Selecionar JSON MVA</button>
   </div>
 
   <div class="info-box">
@@ -141,85 +146,68 @@
   </footer>
 
   <script>
-    const mvaMap = {
-      '3004': 0.40,
-      '3307': 0.30
-    };
-
-    document.getElementById('xmlFileInput').addEventListener('change', function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
+    let mvaMap = {};
+    document.getElementById('jsonFileInput').addEventListener('change', function(e) {
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = function(evt) {
+        mvaMap = JSON.parse(evt.target.result);
+        alert('Arquivo JSON MVA carregado com sucesso!');
+      };
+      reader.readAsText(e.target.files[0]);
+    });
+
+    document.getElementById('xmlFileInput').addEventListener('change', function(e) {
+      const reader = new FileReader();
+      reader.onload = function(evt) {
         const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(e.target.result, 'text/xml');
-
-        const produtos = xmlDoc.getElementsByTagName('det');
+        const xmlDoc = parser.parseFromString(evt.target.result, 'text/xml');
         const emit = xmlDoc.getElementsByTagName('emit')[0];
-        const fornecedor = emit.getElementsByTagName('xNome')[0]?.textContent || '-';
-        const numeroNota = xmlDoc.getElementsByTagName('nNF')[0]?.textContent || '-';
+        document.getElementById('fornecedorInfo').textContent = 'Fornecedor: ' + (emit?.getElementsByTagName('xNome')[0]?.textContent || '-');
+        document.getElementById('notaInfo').textContent = 'Nota Fiscal: ' + (xmlDoc.getElementsByTagName('nNF')[0]?.textContent || '-');
+
         const crt = xmlDoc.getElementsByTagName('CRT')[0]?.textContent || '3';
-
-        document.getElementById('fornecedorInfo').textContent = `Fornecedor: ${fornecedor}`;
-        document.getElementById('notaInfo').textContent = `Nota Fiscal: ${numeroNota}`;
-
+        const produtos = xmlDoc.getElementsByTagName('det');
         const tbody = document.querySelector('#productTable tbody');
         const pricingBody = document.querySelector('#pricingTable tbody');
         tbody.innerHTML = '';
         pricingBody.innerHTML = '';
-
         let totalImposto = 0;
 
-        Array.from(produtos).forEach((det) => {
-          const prod = det.getElementsByTagName('prod')[0];
-          const imposto = det.getElementsByTagName('imposto')[0];
-
+        for (const item of produtos) {
+          const prod = item.getElementsByTagName('prod')[0];
+          const imposto = item.getElementsByTagName('imposto')[0];
           const nome = prod.getElementsByTagName('xProd')[0]?.textContent || '-';
           const cfop = prod.getElementsByTagName('CFOP')[0]?.textContent || '-';
           const cst = imposto?.querySelector('CST')?.textContent || imposto?.querySelector('CSOSN')?.textContent || '-';
-          const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '-';
+          const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
+          const chaveNCM = ncm.substring(0, 4);
+          const mvaBase = mvaMap[chaveNCM] || 0;
 
           const vProd = parseFloat(prod.getElementsByTagName('vProd')[0]?.textContent || '0');
-          const vFrete = parseFloat(prod.getElementsByTagName('vFrete')[0]?.textContent || '0');
+          const vIPI = parseFloat(imposto?.getElementsByTagName('vIPI')[0]?.textContent || '0');
           const vOutro = parseFloat(prod.getElementsByTagName('vOutro')[0]?.textContent || '0');
           const vDesc = parseFloat(prod.getElementsByTagName('vDesc')[0]?.textContent || '0');
+          const vFrete = parseFloat(prod.getElementsByTagName('vFrete')[0]?.textContent || '0');
+          const vICMS = parseFloat(imposto?.querySelector('ICMS > * > vICMS')?.textContent || '0');
 
-          const ipiTag = imposto?.getElementsByTagName('IPI')[0];
-          const vIPI = parseFloat(ipiTag?.getElementsByTagName('vIPI')[0]?.textContent || '0');
-
-          const icmsTag = imposto?.querySelector('ICMS > *');
-          const vICMS = parseFloat(icmsTag?.getElementsByTagName('vICMS')[0]?.textContent || '0');
-
-          const capituloNCM = ncm.substring(0, 4);
-          let mva = mvaMap[capituloNCM] || 0;
-          const ALQ_INTRA = 0.205;
-          const ALQ_INTER = 0.12;
-          let mvaAjustada = mva;
-
+          const base = vProd + vIPI + vFrete + vOutro - vDesc;
+          const ALQ_INTRA = 0.205, ALQ_INTER = 0.12;
+          let mvaAjustada = mvaBase;
           if (cfop.startsWith('6')) {
-            mvaAjustada = ((1 + mva) * (1 - ALQ_INTER) / (1 - ALQ_INTRA)) - 1;
+            mvaAjustada = ((1 + mvaBase) * (1 - ALQ_INTER) / (1 - ALQ_INTRA)) - 1;
           }
 
-          let categoria = (mvaAjustada * 100).toFixed(2) + '%';
-          let impostoValor = ((vProd + vIPI + vFrete + vOutro - vDesc) * mvaAjustada * ALQ_INTRA) - vICMS;
-          impostoValor = Math.max(impostoValor, 0);
+          let impostoCalc = (base * mvaAjustada * ALQ_INTRA) - vICMS;
+          if (['10', '60'].includes(cst)) mvaAjustada = 0, impostoCalc = 0;
+          if (['40'].includes(cst)) mvaAjustada = 0, impostoCalc = 0;
+          if (['41'].includes(cst)) mvaAjustada = 0, impostoCalc = 0;
+          if (crt === '1') mvaAjustada = 0, impostoCalc = 0;
 
-          let total = vProd + vIPI + vFrete + vOutro - vDesc + impostoValor;
-          const quantidade = parseFloat(prod.getElementsByTagName('qCom')[0]?.textContent || '1');
-          const custoFinal = total / quantidade;
-          const efetivo = (impostoValor / vProd) * 100;
-
-          if (crt === '1') {
-            categoria = 'Fornecedor do Simples Nacional, verifique com a contabilidade o imposto da nota';
-          } else if (['10', '40', '41', '60'].includes(cst)) {
-            categoria = {
-              '10': 'ICMS cobrado anteriormente',
-              '60': 'ICMS cobrado anteriormente',
-              '40': 'Produto isento de ICMS',
-              '41': 'Produto não tributado'
-            }[cst];
-          }
+          impostoCalc = Math.max(impostoCalc, 0);
+          const total = base + impostoCalc;
+          const qtd = parseFloat(prod.getElementsByTagName('qCom')[0]?.textContent || '1');
+          const custoFinal = total / qtd;
+          const efetivo = (impostoCalc / vProd) * 100;
 
           const row = tbody.insertRow();
           row.innerHTML = `
@@ -231,14 +219,11 @@
             <td>R$ ${vOutro.toFixed(2)}</td>
             <td>R$ ${vIPI.toFixed(2)}</td>
             <td>R$ ${vDesc.toFixed(2)}</td>
-            <td>${categoria}</td>
-            <td class="highlight-imposto">R$ ${impostoValor.toFixed(2)}</td>
+            <td><input type="number" class="mva-input" value="${(mvaBase * 100).toFixed(2)}" onchange="this.closest('tr').querySelector('.highlight-imposto').textContent = 'R$ ' + (((${base}) * (this.value/100) * ${ALQ_INTRA}) - ${vICMS}).toFixed(2)"></td>
+            <td class="highlight-imposto">R$ ${impostoCalc.toFixed(2)}</td>
             <td>R$ ${total.toFixed(2)}</td>
             <td class="highlight-custo">R$ ${custoFinal.toFixed(2)}</td>
-            <td>${efetivo.toFixed(2)}%</td>
-          `;
-
-          totalImposto += impostoValor;
+            <td>${efetivo.toFixed(2)}%</td>`;
 
           const pricingRow = pricingBody.insertRow();
           pricingRow.insertCell().textContent = nome;
@@ -262,13 +247,14 @@
               resultCell.textContent = precoVenda.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             }
           });
-
           marginCell.appendChild(input);
-        });
+
+          totalImposto += impostoCalc;
+        }
 
         document.getElementById('totalImpostoInfo').textContent = `Total Imposto: R$ ${totalImposto.toFixed(2)}`;
       };
-      reader.readAsText(file);
+      reader.readAsText(e.target.files[0]);
     });
   </script>
 </body>
