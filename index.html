@@ -164,7 +164,7 @@
                         let icmsST = ((baseCalculo * (1 + mvaValue)) * ALQ_FIXA) - vICMS;
                         let total = baseCalculo + icmsST;
                         let custoFinal = qtd > 0 ? total / qtd : 0;
-                        let percEfetivo = total > 0 ? (icmsST / total) * 100 : 0;
+                        let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
                         const select = document.createElement('select');
                         select.className = 'mva-select';
@@ -187,7 +187,7 @@
                             icmsST = ((baseCalculo * (1 + novaMva)) * ALQ_FIXA) - vICMS;
                             total = baseCalculo + icmsST;
                             custoFinal = qtd > 0 ? total / qtd : 0;
-                            percEfetivo = total > 0 ? (icmsST / total) * 100 : 0;
+                            percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
                             impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                             totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
