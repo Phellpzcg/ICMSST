@@ -9,11 +9,23 @@
             font-family: Arial, sans-serif;
             background-color: #f9f9f9;
             color: #333;
-            padding: 20px;
+            padding: 0;
+            margin: 0;
         }
-        h1 {
-            text-align: center;
-            color: #333;
+        header {
+            background-color: #000;
+            color: #f1c40f;
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+        }
+        header img {
+            height: 50px;
+            margin-right: 20px;
+        }
+        header h1 {
+            font-size: 1.5rem;
+            margin: 0;
         }
         .upload-section {
             text-align: center;
@@ -30,10 +42,19 @@
         input[type="file"] {
             display: none;
         }
+        .info-box {
+            display: flex;
+            justify-content: space-around;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 10px;
+            margin: 20px;
+            font-weight: bold;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 30px;
+            margin: 0 0 30px 0;
             font-size: 12px;
         }
         th, td {
@@ -48,16 +69,43 @@
         tr:nth-child(even) {
             background-color: #f2f2f2;
         }
+        .highlight-imposto {
+            background-color: #ffdddd;
+            font-weight: bold;
+        }
+        .highlight-custo {
+            background-color: #ddffdd;
+            font-weight: bold;
+        }
         .mva-select {
             width: 100%;
+        }
+        footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
         }
     </style>
 </head>
 <body>
-    <h1>Importar XML para Cálculo ICMS ST</h1>
+    <header>
+        <img src="img/logo.jpg" alt="Logo Domínio Farma">
+        <h1>Cálculo ICMS ST - Exclusivo para Farmácias</h1>
+    </header>
+
     <div class="upload-section">
         <input type="file" id="xmlFileInput" accept=".xml">
         <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
+    </div>
+
+    <div class="info-box">
+        <span id="fornecedorInfo">Fornecedor: -</span>
+        <span id="notaInfo">Nota Fiscal: -</span>
+        <span id="totalImpostoInfo">Total Imposto: R$ 0,00</span>
     </div>
 
     <table id="productTable">
@@ -72,14 +120,18 @@
                 <th>IPI</th>
                 <th>Desconto</th>
                 <th>Categoria</th>
-                <th>R$ Imposto</th>
+                <th class="highlight-imposto">R$ Imposto</th>
                 <th>Total</th>
-                <th>Custo Final</th>
+                <th class="highlight-custo">Custo Final</th>
                 <th>% Efetivo</th>
             </tr>
         </thead>
         <tbody></tbody>
     </table>
+
+    <footer>
+        Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553
+    </footer>
 
     <script>
         let ncmMvaMap = {};
@@ -100,6 +152,12 @@
                 const products = xmlDoc.getElementsByTagName('prod');
                 const tbody = document.querySelector('#productTable tbody');
                 tbody.innerHTML = '';
+                let totalImpostoNota = 0;
+
+                const fornecedor = xmlDoc.querySelector('emit > xNome')?.textContent || '-';
+                const numeroNota = xmlDoc.querySelector('ide > nNF')?.textContent || '-';
+                document.getElementById('fornecedorInfo').textContent = `Fornecedor: ${fornecedor}`;
+                document.getElementById('notaInfo').textContent = `Nota Fiscal: ${numeroNota}`;
 
                 const CRT = xmlDoc.getElementsByTagName('CRT')[0]?.textContent || '';
 
@@ -169,6 +227,8 @@
 
                         let baseCalculo = valorProd + frete + ipi + outros - desconto;
                         let icmsST = ((baseCalculo * (1 + mvaAjustada)) * ALQ_FIXA) - vICMS;
+                        totalImpostoNota += icmsST;
+
                         let total = baseCalculo + icmsST;
                         let custoFinal = qtd > 0 ? total / qtd : 0;
                         let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
@@ -185,8 +245,10 @@
                         categoriaCell.appendChild(select);
 
                         impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        impostoCell.className = 'highlight-imposto';
                         totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                         custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        custoCell.className = 'highlight-custo';
                         efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
 
                         select.addEventListener('change', function () {
@@ -207,6 +269,8 @@
                         });
                     }
                 }
+
+                document.getElementById('totalImpostoInfo').textContent = `Total Imposto: ${totalImpostoNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
             };
             reader.readAsText(file);
         });
