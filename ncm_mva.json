@@ -1,222 +1,206 @@
 {
   "2106": {
-    "descricao": "Preparações alimentícias não especificadas",
-    "mva": 0.50
-  },
-  "3001": {
-    "descricao": "Medicamentos homeopáticos",
-    "mva": 0.42
-  },
-  "3003": {
-    "descricao": "Medicamentos para uso humano",
-    "mva": 0.40
-  },
-  "3004": {
-    "descricao": "Medicamentos para uso humano",
-    "mva": 0.40
-  },
-  "3005": {
-    "descricao": "Gazes, ataduras, esparadrapos e artigos semelhantes",
-    "mva": 0.00
-  },
-  "3006": {
-    "descricao": "Preparações e artigos farmacêuticos",
-    "mva": 0.00
-  },
-  "3301": {
-    "descricao": "Óleos essenciais e resinoides",
-    "mva": 0.00
-  },
-  "3304": {
-    "descricao": "Produtos de beleza e maquiagem",
-    "mva": 0.65
-  },
-  "3305": {
-    "descricao": "Preparações capilares",
-    "mva": 0.00
-  },
-  "3306": {
-    "descricao": "Preparações para higiene bucal ou dentária",
-    "mva": 0.00
-  },
-  "3307": {
-    "descricao": "Preparações para barbear, desodorantes, banhos, etc.",
-    "mva": 0.00
-  },
-  "3401": {
-    "descricao": "Sabões e produtos de higiene",
-    "mva": 0.50
-  },
-  "3503": {
-    "descricao": "Estreptocinases e estreptodornases",
-    "mva": 0.00
-  },
-  "3507": {
-    "descricao": "Enzimas preparadas",
-    "mva": 0.00
-  },
-  "3822": {
-    "descricao": "Reagentes de diagnóstico ou de laboratório",
-    "mva": 0.00
-  },
-  "4011": {
-    "descricao": "Fraldas descartáveis",
-    "mva": 0.30
-  },
-  "4015": {
-    "descricao": "Vestuário e seus acessórios, de borracha vulcanizada",
-    "mva": 0.00
-  },
-  "5601": {
-    "descricao": "Lã cardada ou penteada",
-    "mva": 0.00
-  },
-  "6115": {
-    "descricao": "Meias-calças, meias e artigos semelhantes",
-    "mva": 0.00
-  },
-  "6506": {
-    "descricao": "Outros chapéus e artefatos de uso semelhante",
-    "mva": 0.00
-  },
-  "8212": {
-    "descricao": "Navalhas, aparelhos de barbear e lâminas",
-    "mva": 0.00
-  },
-  "8214": {
-    "descricao": "Outros artigos de cutelaria",
-    "mva": 0.00
-  },
-  "8506": {
-    "descricao": "Pilhas e baterias elétricas",
-    "mva": 0.00
-  },
-  "9018": {
-    "descricao": "Aparelhos médicos e cirúrgicos",
-    "mva": 0.31
-  },
-  "9021": {
-    "descricao": "Aparelhos ortopédicos e para fraturas",
-    "mva": 0.00
-  },
-  "9027": {
-    "descricao": "Instrumentos e aparelhos para análises físicas ou químicas",
-    "mva": 0.00
-  },
-  "9603": {
-    "descricao": "Vassouras, escovas e pincéis",
-    "mva": 0.00
-  },
-  "9619": {
-    "descricao": "Fraldas e artigos semelhantes, de uso higiênico ou farmacêutico",
-    "mva": 0.00
-  },
-  "1901": {
-    "descricao": "Preparações alimentícias à base de cereais, farinhas, amidos ou féculas",
-    "mva": 0.00
+    "descricao": "gêneros alimentícios",
+    "mva": 0.5
   },
   "2202": {
-    "descricao": "Águas, incluindo as minerais e gaseificadas, adicionadas de açúcar ou de outros edulcorantes",
-    "mva": 0.00
-  },
-  "2936": {
-    "descricao": "Provitaminas e vitaminas",
-    "mva": 0.00
-  },
-  "3002": {
-    "descricao": "Soros e vacinas",
-    "mva": 0.00
-  },
-  "3004": {
-    "descricao": "Medicamentos para uso humano",
-    "mva": 0.40
-  },
-  "3006": {
-    "descricao": "Preparações e artigos farmacêuticos",
-    "mva": 0.00
+    "descricao": "bebidas não alcóolicas",
+    "mva": 0.7
   },
   "3301": {
-    "descricao": "Óleos essenciais e resinoides",
-    "mva": 0.00
+    "descricao": "perfumarias, cosméticos e produtos de higiene pessoal",
+    "mva": 0.6
+  },
+  "3304": {
+    "descricao": "perfumarias, cosméticos e produtos de higiene pessoal",
+    "mva": 0.6
   },
   "3305": {
-    "descricao": "Preparações capilares",
-    "mva": 0.00
+    "descricao": "perfumarias, cosméticos e produtos de higiene pessoal",
+    "mva": 0.6
   },
   "3306": {
-    "descricao": "Preparações para higiene bucal ou dentária",
-    "mva": 0.00
+    "descricao": "perfumarias, cosméticos e produtos de higiene pessoal",
+    "mva": 0.6
   },
   "3307": {
-    "descricao": "Preparações para barbear, desodorantes, banhos, etc.",
-    "mva": 0.00
+    "descricao": "perfumarias, cosméticos e produtos de higiene pessoal",
+    "mva": 0.6
   },
   "3401": {
-    "descricao": "Sabões e produtos de higiene",
-    "mva": 0.50
+    "descricao": "material de limpeza",
+    "mva": 0.4
   },
   "3503": {
-    "descricao": "Estreptocinases e estreptodornases",
-    "mva": 0.00
+    "descricao": "outras mercadorias",
+    "mva": 0.4
   },
   "3507": {
-    "descricao": "Enzimas preparadas",
-    "mva": 0.00
+    "descricao": "outras mercadorias",
+    "mva": 0.4
   },
   "3822": {
-    "descricao": "Reagentes de diagnóstico ou de laboratório",
-    "mva": 0.00
+    "descricao": "outras mercadorias",
+    "mva": 0.4
   },
   "4011": {
-    "descricao": "Fraldas descartáveis",
-    "mva": 0.30
+    "descricao": "outras mercadorias",
+    "mva": 0.4
   },
   "4015": {
-    "descricao": "Vestuário e seus acessórios, de borracha vulcanizada",
-    "mva": 0.00
+    "descricao": "confecções, tecidos e artefatos de tecidos",
+    "mva": 0.4
   },
   "5601": {
-    "descricao": "Lã cardada ou penteada",
-    "mva": 0.00
+    "descricao": "confecções, tecidos e artefatos de tecidos",
+    "mva": 0.4
   },
   "6115": {
-    "descricao": "Meias-calças, meias e artigos semelhantes",
-    "mva": 0.00
+    "descricao": "confecções, tecidos e artefatos de tecidos",
+    "mva": 0.4
   },
   "6506": {
-    "descricao": "Outros chapéus e artefatos de uso semelhante",
-    "mva": 0.00
+    "descricao": "calçados, cintos, bolsas e carteiras",
+    "mva": 0.34
   },
   "8212": {
-    "descricao": "Navalhas, aparelhos de barbear e lâminas",
-    "mva": 0.00
+    "descricao": "ferragens, louças, vidros",
+    "mva": 0.4
   },
   "8214": {
-    "descricao": "Outros artigos de cutelaria",
-    "mva": 0.00
+    "descricao": "ferragens, louças, vidros",
+    "mva": 0.4
   },
   "8506": {
-    "descricao": "Pilhas e baterias elétricas",
-    "mva": 0.00
+    "descricao": "materiais elétricos",
+    "mva": 0.6
   },
   "9018": {
-    "descricao": "Aparelhos médicos e cirúrgicos",
-    "mva": 0.31
+    "descricao": "outras mercadorias",
+    "mva": 0.4
   },
   "9021": {
-    "descricao": "Aparelhos ortopédicos e para fraturas",
-    "mva": 0.00
+    "descricao": "outras mercadorias",
+    "mva": 0.4
   },
   "9027": {
-    "descricao": "Instrumentos e aparelhos para análises físicas ou químicas",
-    "mva": 0.00
+    "descricao": "outras mercadorias",
+    "mva": 0.4
   },
   "9603": {
-    "descricao": "Vassouras, escovas e pincéis",
-    "mva": 0.00
+    "descricao": "artigos de armarinho",
+    "mva": 0.9
   },
   "9619": {
-    "descricao": "Fraldas e artigos semelhantes, de uso higiênico ou farmacêutico",
-    "mva": 0.00
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "1901": {
+    "descricao": "gêneros alimentícios",
+    "mva": 0.5
+  },
+  "2202": {
+    "descricao": "bebidas não alcóolicas",
+    "mva": 0.7
+  },
+  "2936": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "3002": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "3004": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "3006": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "3301": {
+    "descricao": "perfumarias, cosméticos e produtos de higiene pessoal",
+    "mva": 0.6
+  },
+  "3305": {
+    "descricao": "perfumarias, cosméticos e produtos de higiene pessoal",
+    "mva": 0.6
+  },
+  "3306": {
+    "descricao": "perfumarias, cosméticos e produtos de higiene pessoal",
+    "mva": 0.6
+  },
+  "3307": {
+    "descricao": "perfumarias, cosméticos e produtos de higiene pessoal",
+    "mva": 0.6
+  },
+  "3401": {
+    "descricao": "material de limpeza",
+    "mva": 0.4
+  },
+  "3503": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "3507": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "3822": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "4011": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "4015": {
+    "descricao": "confecções, tecidos e artefatos de tecidos",
+    "mva": 0.4
+  },
+  "5601": {
+    "descricao": "confecções, tecidos e artefatos de tecidos",
+    "mva": 0.4
+  },
+  "6115": {
+    "descricao": "confecções, tecidos e artefatos de tecidos",
+    "mva": 0.4
+  },
+  "6506": {
+    "descricao": "calçados, cintos, bolsas e carteiras",
+    "mva": 0.34
+  },
+  "8212": {
+    "descricao": "ferragens, louças, vidros",
+    "mva": 0.4
+  },
+  "8214": {
+    "descricao": "ferragens, louças, vidros",
+    "mva": 0.4
+  },
+  "8506": {
+    "descricao": "materiais elétricos",
+    "mva": 0.6
+  },
+  "9018": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "9021": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "9027": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
+  },
+  "9603": {
+    "descricao": "artigos de armarinho",
+    "mva": 0.9
+  },
+  "9619": {
+    "descricao": "outras mercadorias",
+    "mva": 0.4
   }
 }
