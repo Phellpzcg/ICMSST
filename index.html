@@ -1,101 +1,36 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Importar XML - ICMS ST</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
-      color: #333;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background-color: #000;
-      color: #f1c40f;
-      display: flex;
-      align-items: center;
-      padding: 10px 20px;
-    }
-    header img {
-      height: 50px;
-      margin-right: 20px;
-    }
-    header h1 {
-      font-size: 1.5rem;
-      margin: 0;
-    }
-    .upload-section {
-      text-align: center;
-      margin: 20px 0;
-    }
-    button {
-      padding: 10px 20px;
-      background-color: #f1c40f;
-      border: none;
-      border-radius: 5px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    input[type="file"] {
-      display: none;
-    }
-    .info-box {
-      display: flex;
-      justify-content: space-around;
-      background-color: #fff3cd;
-      border: 1px solid #ffeeba;
-      padding: 10px;
-      margin: 20px;
-      font-weight: bold;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 30px;
-      font-size: 12px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #333;
-      color: #f1c40f;
-    }
-    tr:nth-child(even) {
-      background-color: #f2f2f2;
-    }
-    .highlight-imposto {
-      background-color: #ffdddd;
-      font-weight: bold;
-    }
-    .highlight-custo {
-      background-color: #ddffdd;
-      font-weight: bold;
-    }
-    footer {
-      background-color: #333;
-      color: #fff;
-      text-align: center;
-      padding: 10px;
-    }
+    body { font-family: Arial, sans-serif; background-color: #f9f9f9; color: #333; margin: 0; padding: 0; }
+    header { background-color: #000; color: #f1c40f; display: flex; align-items: center; padding: 10px 20px; }
+    header img { height: 50px; margin-right: 20px; }
+    header h1 { font-size: 1.5rem; margin: 0; }
+    .upload-section { text-align: center; margin: 20px 0; }
+    button { padding: 10px 20px; background-color: #f1c40f; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+    input[type="file"] { display: none; }
+    .info-box { display: flex; justify-content: space-around; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; margin: 20px; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #333; color: #f1c40f; }
+    tr:nth-child(even) { background-color: #f2f2f2; }
+    .highlight-imposto { background-color: #ffdddd; font-weight: bold; }
+    .highlight-custo { background-color: #ddffdd; font-weight: bold; }
+    footer { background-color: #333; color: #fff; text-align: center; padding: 10px; }
   </style>
 </head>
 <body>
   <header>
-    <img src="img/logo.jpg" alt="Logo Domínio Farma">
+    <img src="img/logo.jpg" alt="Logo Domínio Farma" />
     <h1>Cálculo ICMS ST - Exclusivo para Farmácias</h1>
   </header>
 
   <div class="upload-section">
-    <input type="file" id="xmlFileInput" accept=".xml">
-    <input type="file" id="jsonFileInput" accept=".json">
+    <input type="file" id="xmlFileInput" accept=".xml" />
     <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
-    <button onclick="document.getElementById('jsonFileInput').click()">Selecionar JSON MVA</button>
   </div>
 
   <div class="info-box">
@@ -131,17 +66,9 @@
 
   <script>
     let mvaMap = {};
-    document.getElementById('jsonFileInput').addEventListener('change', function(e) {
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const json = JSON.parse(evt.target.result);
-        for (const cap in json) {
-          mvaMap[cap] = json[cap].mva;
-        }
-        alert('Arquivo JSON MVA carregado com sucesso!');
-      };
-      reader.readAsText(e.target.files[0]);
-    });
+    fetch('ncm_mva.json')
+      .then(res => res.json())
+      .then(data => mvaMap = data);
 
     document.getElementById('xmlFileInput').addEventListener('change', function(e) {
       const reader = new FileReader();
@@ -166,7 +93,7 @@
           const cst = imposto?.querySelector('CST')?.textContent || imposto?.querySelector('CSOSN')?.textContent || '-';
           const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
           const chaveNCM = ncm.substring(0, 4);
-          const mvaBase = mvaMap[chaveNCM] || 0;
+          let mvaBase = mvaMap[chaveNCM]?.mva || 0;
 
           const vProd = parseFloat(prod.getElementsByTagName('vProd')[0]?.textContent || '0');
           const vIPI = parseFloat(imposto?.getElementsByTagName('vIPI')[0]?.textContent || '0');
@@ -177,22 +104,16 @@
 
           const base = vProd + vIPI + vFrete + vOutro - vDesc;
           const ALQ_INTRA = 0.205, ALQ_INTER = 0.12;
-          let mvaAjustada = mvaBase;
-          if (cfop.startsWith('6')) {
-            mvaAjustada = ((1 + mvaBase) * (1 - ALQ_INTER) / (1 - ALQ_INTRA)) - 1;
-          }
+          let mvaAjustada = (cfop.startsWith('6')) ? ((1 + mvaBase) * (1 - ALQ_INTER) / (1 - ALQ_INTRA)) - 1 : mvaBase;
 
           let impostoCalc = (base * mvaAjustada * ALQ_INTRA) - vICMS;
-          if (['10', '60'].includes(cst)) impostoCalc = 0, mvaAjustada = 0;
-          if (['40'].includes(cst)) impostoCalc = 0, mvaAjustada = 0;
-          if (['41'].includes(cst)) impostoCalc = 0, mvaAjustada = 0;
-          if (crt === '1') impostoCalc = 0, mvaAjustada = 0;
+          if (['10', '60', '40', '41'].includes(cst) || crt === '1') impostoCalc = 0;
 
           impostoCalc = Math.max(impostoCalc, 0);
           const total = base + impostoCalc;
           const qtd = parseFloat(prod.getElementsByTagName('qCom')[0]?.textContent || '1');
           const custoFinal = total / qtd;
-          const efetivo = (impostoCalc / vProd) * 100;
+          const efetivo = (vProd > 0) ? (impostoCalc / vProd) * 100 : 0;
 
           const row = tbody.insertRow();
           row.innerHTML = `
@@ -204,13 +125,50 @@
             <td>R$ ${vOutro.toFixed(2)}</td>
             <td>R$ ${vIPI.toFixed(2)}</td>
             <td>R$ ${vDesc.toFixed(2)}</td>
-            <td>${(mvaAjustada * 100).toFixed(2)}%</td>
+            <td></td>
             <td class="highlight-imposto">R$ ${impostoCalc.toFixed(2)}</td>
             <td>R$ ${total.toFixed(2)}</td>
             <td class="highlight-custo">R$ ${custoFinal.toFixed(2)}</td>
             <td>${efetivo.toFixed(2)}%</td>`;
 
+          const select = document.createElement('select');
+          for (const key in mvaMap) {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = `${key} - ${mvaMap[key].descricao} (${(mvaMap[key].mva * 100).toFixed(2)}%)`;
+            if (key === chaveNCM) opt.selected = true;
+            select.appendChild(opt);
+          }
+
+          select.addEventListener('change', () => {
+            const novaMva = parseFloat(mvaMap[select.value].mva);
+            let novaMvaAjustada = (cfop.startsWith('6')) ? ((1 + novaMva) * (1 - ALQ_INTER) / (1 - ALQ_INTRA)) - 1 : novaMva;
+            let novoImposto = (base * novaMvaAjustada * ALQ_INTRA) - vICMS;
+            if (['10', '60', '40', '41'].includes(cst) || crt === '1') novoImposto = 0;
+
+            novoImposto = Math.max(novoImposto, 0);
+            const novoTotal = base + novoImposto;
+            const novoCusto = novoTotal / qtd;
+            const novoEfetivo = (vProd > 0) ? (novoImposto / vProd) * 100 : 0;
+
+            row.cells[9].textContent = `R$ ${novoImposto.toFixed(2)}`;
+            row.cells[10].textContent = `R$ ${novoTotal.toFixed(2)}`;
+            row.cells[11].textContent = `R$ ${novoCusto.toFixed(2)}`;
+            row.cells[12].textContent = `${novoEfetivo.toFixed(2)}%`;
+            atualizarTotal();
+          });
+
+          row.cells[8].appendChild(select);
           totalImposto += impostoCalc;
+        }
+
+        function atualizarTotal() {
+          let total = 0;
+          document.querySelectorAll('#productTable tbody tr').forEach(tr => {
+            const valor = parseFloat(tr.cells[9].textContent.replace('R$', '').replace(',', '.')) || 0;
+            total += valor;
+          });
+          document.getElementById('totalImpostoInfo').textContent = `Total Imposto: R$ ${total.toFixed(2)}`;
         }
 
         document.getElementById('totalImpostoInfo').textContent = `Total Imposto: R$ ${totalImposto.toFixed(2)}`;
