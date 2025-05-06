@@ -163,7 +163,10 @@
                         efetivoCell.textContent = '-';
                     } else {
                         const mvaOriginal = categoria?.mva || 0;
-                        const mvaAjustada = cfop.startsWith('6') ? (((1 + mvaOriginal) * (1 - alqInter)) / (1 - ALQ_FIXA) - 1) : mvaOriginal;
+                        const mvaAjustada = cfop.startsWith('6') 
+                            ? (((1 + mvaOriginal) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1 
+                            : mvaOriginal;
+
                         let baseCalculo = valorProd + frete + ipi + outros - desconto;
                         let icmsST = ((baseCalculo * (1 + mvaAjustada)) * ALQ_FIXA) - vICMS;
                         let total = baseCalculo + icmsST;
@@ -188,7 +191,10 @@
 
                         select.addEventListener('change', function () {
                             const novaMva = parseFloat(this.value);
-                            const novaMvaAjustada = cfop.startsWith('6') ? (((1 + novaMva) * (1 - alqInter)) / (1 - ALQ_FIXA) - 1) : novaMva;
+                            const novaMvaAjustada = cfop.startsWith('6') 
+                                ? (((1 + novaMva) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1 
+                                : novaMva;
+
                             icmsST = ((baseCalculo * (1 + novaMvaAjustada)) * ALQ_FIXA) - vICMS;
                             total = baseCalculo + icmsST;
                             custoFinal = qtd > 0 ? total / qtd : 0;
