@@ -77,7 +77,6 @@
       background-color: #ddffdd;
       font-weight: bold;
     }
-    .mva-select {
       width: 100%;
     }
     footer {
@@ -134,9 +133,16 @@
     let ncmMvaMap = {};
     const ALQ_FIXA = 0.205;
 
-    fetch('ncm_mva.json')
+    fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/P\u00E1gina1')
       .then(res => res.json())
-      .then(data => ncmMvaMap = data);
+      .then(data => {
+        data.forEach(item => {
+          ncmMvaMap[item.prefixo] = {
+            descricao: item.descricao,
+            mva: parseFloat(item.mva)
+          };
+        });
+      });
 
     document.getElementById('xmlFileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];
@@ -221,7 +227,16 @@
             custoCell.className = 'highlight-custo';
             efetivoCell.textContent = '-';
           } else {
-            const mvaOriginal = categoria?.mva || 0;
+            if (!categoria) {
+              categoriaCell.textContent = 'Erro';
+              impostoCell.textContent = 'Erro';
+              totalCell.textContent = 'Erro';
+              custoCell.textContent = 'Erro';
+              efetivoCell.textContent = 'Erro';
+              return;
+            }
+
+            const mvaOriginal = categoria.mva || 0;
             const mvaAjustada = cfop.startsWith('6')
               ? (((1 + mvaOriginal) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1
               : mvaOriginal;
@@ -233,16 +248,7 @@
             let custoFinal = qtd > 0 ? total / qtd : 0;
             let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
-            const select = document.createElement('select');
-            select.className = 'mva-select';
-            for (const key in ncmMvaMap) {
-              const option = document.createElement('option');
-              option.value = ncmMvaMap[key].mva;
-              option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
-              if (key === prefixo) option.selected = true;
-              select.appendChild(option);
-            }
-            categoriaCell.appendChild(select);
+            categoriaCell.textContent = `${prefixo} - ${categoria.descricao}`;
 
             impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             impostoCell.className = 'highlight-imposto';
@@ -250,23 +256,6 @@
             custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             custoCell.className = 'highlight-custo';
             efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
-
-            select.addEventListener('change', function () {
-              const novaMva = parseFloat(this.value);
-              const novaMvaAjustada = cfop.startsWith('6')
-                ? (((1 + novaMva) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1
-                : novaMva;
-
-              icmsST = ((baseCalculo * (1 + novaMvaAjustada)) * ALQ_FIXA) - vICMS;
-              total = baseCalculo + icmsST;
-              custoFinal = qtd > 0 ? total / qtd : 0;
-              percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
-
-              impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
-            });
           }
         }
 

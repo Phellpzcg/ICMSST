@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análise de Venda</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: #f9f9f9;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+  }
+  th {
+    background: #333;
+    color: #f1c40f;
+  }
+  tr:nth-child(even) {
+    background: #f2f2f2;
+  }
+  .topo {
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+  <div class="topo">
+    <label>Taxa de Cartão (%) <input id="taxaCartao" type="number" min="0" step="0.01"></label>
+    <select id="regimeTributario">
+      <option value="">Selecione o regime</option>
+      <option value="SN">Simples Nacional</option>
+      <option value="LP">Lucro Presumido</option>
+    </select>
+    <a href="index.html"><button>Voltar para Página Inicial</button></a>
+  </div>
+  <table id="analiseTable">
+    <thead>
+      <tr>
+        <th>Descrição</th>
+        <th>Quantidade</th>
+        <th>Valor de Venda</th>
+        <th>Resultado</th>
+        <th>% Markup</th>
+        <th>% Lucro Efetivo</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+<script>
+let mapaMargem = {};
+fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/P\u00E1gina1')
+  .then(r => r.json())
+  .then(dados => {
+    dados.forEach(l => {
+      mapaMargem[l.prefixo] = {
+        descricao: l.descricao,
+        mva: parseFloat(l.mva),
+        margemSN: parseFloat(l.colunaD),
+        margemLP: parseFloat(l.colunaE)
+      };
+    });
+    adicionarProdutosExemplo();
+  });
+
+function habilitarEdicao() {
+  const habilita = document.getElementById('taxaCartao').value !== '' && document.getElementById('regimeTributario').value !== '';
+  document.querySelectorAll('.valorVenda').forEach(i => i.disabled = !habilita);
+}
+
+document.getElementById('taxaCartao').addEventListener('input', habilitarEdicao);
+document.getElementById('regimeTributario').addEventListener('change', habilitarEdicao);
+
+function adicionarProdutosExemplo() {
+  const produtos = [
+    {descricao: 'Produto A', quantidade: 1, ncm: '2106', custo: 100, icms: 20},
+    {descricao: 'Produto B', quantidade: 2, ncm: '3301', custo: 50, icms: 5},
+    {descricao: 'Produto C', quantidade: 1, ncm: '9999', custo: 30, icms: 3}
+  ];
+  const tbody = document.querySelector('#analiseTable tbody');
+  produtos.forEach(p => {
+    const margens = mapaMargem[p.ncm.substring(0,4)];
+    const tr = document.createElement('tr');
+    if (!margens) {
+      tr.innerHTML = '<td colspan="6">Erro</td>';
+      tbody.appendChild(tr);
+      return;
+    }
+    tr.innerHTML = `
+      <td>${p.descricao}</td>
+      <td>${p.quantidade}</td>
+      <td><input type="number" class="valorVenda" disabled></td>
+      <td class="resultado">-</td>
+      <td class="markup">-</td>
+      <td class="lucro">-</td>`;
+    tbody.appendChild(tr);
+    const inputVenda = tr.querySelector('.valorVenda');
+    const resultado = tr.querySelector('.resultado');
+    const markup = tr.querySelector('.markup');
+    const lucro = tr.querySelector('.lucro');
+    function atualizar() {
+      const venda = parseFloat(inputVenda.value) || 0;
+      const taxa = parseFloat(document.getElementById('taxaCartao').value) || 0;
+      const regime = document.getElementById('regimeTributario').value;
+      const margem = regime === 'LP' ? margens.margemLP : margens.margemSN;
+      const res = p.custo + p.icms + (taxa/100 * venda) + (margem/100 * venda);
+      const mk = p.custo ? ((venda/p.custo)-1)*100 : 0;
+      const luc = venda ? ((venda - res)/venda)*100 : 0;
+      resultado.textContent = res.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+      markup.textContent = mk.toFixed(2)+'%';
+      lucro.textContent = luc.toFixed(2)+'%';
+    }
+    inputVenda.addEventListener('input', atualizar);
+    document.getElementById('taxaCartao').addEventListener('input', atualizar);
+    document.getElementById('regimeTributario').addEventListener('change', atualizar);
+  });
+}
+</script>
+</body>
+</html>
