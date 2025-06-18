@@ -212,7 +212,12 @@
           row.insertCell(1).textContent = cfop;
           row.insertCell(2).textContent = cst;
           row.insertCell(3).textContent = ncm;
-          row.insertCell(4).textContent = qtd;
+          const qtdCell = row.insertCell(4);
+          const qtdInput = document.createElement('input');
+          qtdInput.type = 'number';
+          qtdInput.value = qtd;
+          qtdInput.style.width = '60px';
+          qtdCell.appendChild(qtdInput);
           row.insertCell(5).textContent = valorProd.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
           row.insertCell(6).textContent = outros.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
           row.insertCell(7).textContent = ipi.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -260,30 +265,36 @@
               totalImpostoNota += icmsST;
 
               let total = baseCalculo + icmsST;
-              let custoFinal = qtd > 0 ? total / qtd : 0;
+              const calcularCusto = () => {
+                const qAtual = parseFloat(qtdInput.value) || 0;
+                let custoFinal = qAtual > 0 ? total / qAtual : 0;
+                custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                produtosCalculados[i] = {
+                  descricao: nome,
+                  quantidade: qAtual,
+                  custoOriginal: baseCalculo,
+                  icmsSt: icmsST,
+                  custoUnitario: custoFinal,
+                  margemSN: categoria.margemSN,
+                  margemLP: categoria.margemLP
+                };
+                localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
+              };
               let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
               categoriaCell.textContent = `${categoria.descricao} (${(mvaAjustada * 100).toFixed(2)}%)`;
               impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
               impostoCell.className = 'highlight-imposto';
               totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+              calcularCusto();
               custoCell.className = 'highlight-custo';
               efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
-              produtosCalculados.push({
-                descricao: nome,
-                quantidade: qtd,
-                custoOriginal: baseCalculo,
-                icmsSt: icmsST,
-                custoUnitario: custoFinal,
-                margemSN: categoria.margemSN,
-                margemLP: categoria.margemLP
-              });
               if (cfop.startsWith('6')) {
                 document.getElementById('alerta').textContent = `⚠️ O fornecedor é de fora do estado. A alíquota foi ajustada com base na MVA Ajustada: ${(mvaAjustada * 100).toFixed(2)}%`;
               } else {
                 document.getElementById('alerta').textContent = '';
               }
+              qtdInput.addEventListener('input', calcularCusto);
             }
           }
         }

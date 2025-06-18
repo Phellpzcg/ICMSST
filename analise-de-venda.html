@@ -71,7 +71,12 @@
   dadosProdutos.forEach((p,i)=>{
     const row = tbody.insertRow();
     row.insertCell(0).textContent = p.descricao;
-    row.insertCell(1).textContent = p.quantidade;
+    const qtdCell = row.insertCell(1);
+    const qtdInput = document.createElement('input');
+    qtdInput.type = 'number';
+    qtdInput.value = p.quantidade;
+    qtdInput.style.width = '60px';
+    qtdCell.appendChild(qtdInput);
     const valorVendaCell = row.insertCell(2);
     const input = document.createElement('input');
     input.type = 'number';
@@ -92,15 +97,15 @@
       const regime = document.getElementById('regime').value;
       const margemSN = p.margemSN||0;
       const margemLP = p.margemLP||0;
-      const baseUnit = p.custoUnitario !== undefined ? p.custoUnitario :
-                       (p.quantidade ? (p.custoOriginal + p.icmsSt) / p.quantidade : 0);
+      const qtdAtual = parseFloat(qtdInput.value) || 0;
+      const baseUnit = qtdAtual ? (p.custoOriginal + p.icmsSt) / qtdAtual : 0;
 
       const valorTaxa = valorVenda * (taxa/100);
       const valorSN = valorVenda * (margemSN/100);
       const valorLP = valorVenda * (margemLP/100);
       const snAplicado = regime === 'SN' ? valorSN : 0;
       const lpAplicado = regime === 'LP' ? valorLP : 0;
-      const icmsUnit = p.quantidade ? p.icmsSt / p.quantidade : 0;
+      const icmsUnit = qtdAtual ? p.icmsSt / qtdAtual : 0;
 
       const custoTotal = icmsUnit + valorTaxa + snAplicado + lpAplicado;
       const resultado = baseUnit + valorTaxa + snAplicado + lpAplicado;
@@ -117,6 +122,11 @@
     }
 
     input.addEventListener('input', calcular);
+    qtdInput.addEventListener('input', () => {
+      p.quantidade = parseFloat(qtdInput.value) || 0;
+      localStorage.setItem('produtosCalculados', JSON.stringify(dadosProdutos));
+      calcular();
+    });
     document.getElementById('taxaCartao').addEventListener('input', habilitar);
     document.getElementById('regime').addEventListener('change', habilitar);
 
