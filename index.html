@@ -77,9 +77,6 @@
       background-color: #ddffdd;
       font-weight: bold;
     }
-    .mva-select {
-      width: 100%;
-    }
     footer {
       background-color: #333;
       color: #fff;
@@ -104,6 +101,7 @@
     <span id="notaInfo">Nota Fiscal: -</span>
     <span id="totalImpostoInfo">Total Imposto: R$ 0,00</span>
   </div>
+  <div id="interestadualMsg" style="display:none;color:#856404;background-color:#fff3cd;border:1px solid #ffeeba;padding:5px;margin:10px;text-align:center"></div>
 
   <table id="productTable">
     <thead>
@@ -116,6 +114,7 @@
         <th>Outros</th>
         <th>IPI</th>
         <th>Desconto</th>
+        <th>Quantidade</th>
         <th>Categoria</th>
         <th class="highlight-imposto">R$ Imposto</th>
         <th>Total</th>
@@ -126,6 +125,19 @@
     <tbody></tbody>
   </table>
 
+  <div class="legal-info" style="background:#fff8dc;border:1px solid #d7c59a;padding:10px;margin:20px;">
+    <strong>📌 Por que farmácias pagam esse ICMS antecipado?</strong>
+    <p>Conforme Art. 294 do Regulamento do ICMS da Bahia, farmácias, drogarias e casas de produtos naturais devem recolher antecipadamente o ICMS nas compras de produtos não alcançados pela substituição tributária. Nesses casos, a base de cálculo é ajustada por uma Margem de Valor Agregado (MVA), conforme previsto nos §§ 14 e 17 do art. 289.</p>
+    <p>Nas aquisições interestaduais, a MVA deve ser ajustada com base na fórmula legal, o que pode aumentar o valor do imposto.</p>
+    <p><strong>Exemplos de MVA para aquisições internas:</strong><br>
+    Gêneros alimentícios: 50%<br>
+    Perfumarias e higiene pessoal: 60%<br>
+    Eletrodomésticos: 20%<br>
+    Jóias e relógios: 70%<br>
+    Outras mercadorias: 40%</p>
+    <p>⚠️ Essa sistemática é específica para farmácias e garante a tributação do ICMS mesmo quando a mercadoria não vem com substituição tributária do fornecedor.</p>
+  </div>
+
   <footer>
     Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553
   </footer>
@@ -134,10 +146,19 @@
     let ncmMvaMap = {};
     const ALQ_FIXA = 0.205;
 
-    fetch('ncm_mva.json')
+    fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/P%C3%A1gina1')
       .then(res => res.json())
-      .then(data => ncmMvaMap = data);
+      .then(data => {
+        ncmMvaMap = {};
+        data.forEach(item => {
+          ncmMvaMap[item.prefixo] = {
+            descricao: item.descricao,
+            mva: parseFloat(item.mva)
+          };
+        });
+      });
 
+    const interestadualBox = document.getElementById('interestadualMsg');
     document.getElementById('xmlFileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -149,7 +170,9 @@
         const products = xmlDoc.getElementsByTagName('prod');
         const tbody = document.querySelector('#productTable tbody');
         tbody.innerHTML = '';
+        interestadualBox.style.display = 'none';
         let totalImpostoNota = 0;
+        let msgSet = false;
 
         const fornecedor = xmlDoc.querySelector('emit > xNome')?.textContent || '-';
         const numeroNota = xmlDoc.querySelector('ide > nNF')?.textContent || '-';
@@ -194,16 +217,23 @@
           row.insertCell(5).textContent = outros.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
           row.insertCell(6).textContent = ipi.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
           row.insertCell(7).textContent = desconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          row.insertCell(8).textContent = qtd;
 
-          const categoriaCell = row.insertCell(8);
-          const impostoCell = row.insertCell(9);
-          const totalCell = row.insertCell(10);
-          const custoCell = row.insertCell(11);
-          const efetivoCell = row.insertCell(12);
+          const categoriaCell = row.insertCell(9);
+          const impostoCell = row.insertCell(10);
+          const totalCell = row.insertCell(11);
+          const custoCell = row.insertCell(12);
+          const efetivoCell = row.insertCell(13);
 
           const baseCalculo = valorProd + frete + ipi + outros - desconto;
 
-          if (CRT === '1') {
+          if (!categoria) {
+            categoriaCell.textContent = 'NCM não cadastrada, solicite ao suporte';
+            impostoCell.textContent = 'Erro';
+            totalCell.textContent = 'Erro';
+            custoCell.textContent = 'Erro';
+            efetivoCell.textContent = 'Erro';
+          } else if (CRT === '1') {
             categoriaCell.textContent = 'Fornecedor do Simples Nacional, verifique com a contabilidade o imposto da nota';
             impostoCell.textContent = '-';
             totalCell.textContent = '-';
@@ -225,6 +255,11 @@
             const mvaAjustada = cfop.startsWith('6')
               ? (((1 + mvaOriginal) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1
               : mvaOriginal;
+            if (cfop.startsWith('6') && !msgSet) {
+              interestadualBox.textContent = `⚠️ O fornecedor é de fora do estado. A alíquota foi ajustada com base na MVA Ajustada: ${(mvaAjustada * 100).toFixed(2)}%.`;
+              interestadualBox.style.display = 'block';
+              msgSet = true;
+            }
 
             let icmsST = ((baseCalculo * (1 + mvaAjustada)) * ALQ_FIXA) - vICMS;
             totalImpostoNota += icmsST;
@@ -233,16 +268,7 @@
             let custoFinal = qtd > 0 ? total / qtd : 0;
             let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
-            const select = document.createElement('select');
-            select.className = 'mva-select';
-            for (const key in ncmMvaMap) {
-              const option = document.createElement('option');
-              option.value = ncmMvaMap[key].mva;
-              option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
-              if (key === prefixo) option.selected = true;
-              select.appendChild(option);
-            }
-            categoriaCell.appendChild(select);
+            categoriaCell.textContent = categoria?.descricao || 'NCM não cadastrada, solicite ao suporte';
 
             impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             impostoCell.className = 'highlight-imposto';
@@ -250,23 +276,6 @@
             custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             custoCell.className = 'highlight-custo';
             efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
-
-            select.addEventListener('change', function () {
-              const novaMva = parseFloat(this.value);
-              const novaMvaAjustada = cfop.startsWith('6')
-                ? (((1 + novaMva) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1
-                : novaMva;
-
-              icmsST = ((baseCalculo * (1 + novaMvaAjustada)) * ALQ_FIXA) - vICMS;
-              total = baseCalculo + icmsST;
-              custoFinal = qtd > 0 ? total / qtd : 0;
-              percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
-
-              impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
-            });
           }
         }
 
