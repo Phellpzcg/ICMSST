@@ -12,7 +12,8 @@
     tr:nth-child(even) { background:#f2f2f2; }
     header { display:flex; justify-content:space-between; align-items:center; }
     button { padding:8px 16px; border:none; background:#f1c40f; cursor:pointer; border-radius:4px; font-weight:bold; }
-    input[disabled] { background:#eee; }
+    input.valor-venda { width:80px; padding:4px; border:1px solid #ccc; border-radius:4px; }
+    input.valor-venda[disabled] { background:#eee; }
   </style>
 </head>
 <body>
@@ -80,9 +81,10 @@
       const taxa = parseFloat(document.getElementById('taxaCartao').value)||0;
       const regime = document.getElementById('regime').value;
       const margem = regime==='SN'? (p.margemSN||0) : regime==='LP'? (p.margemLP||0) : 0;
-      const base = p.custoOriginal + p.icmsSt;
-      const resultado = base * (1 + taxa/100 + margem/100);
-      const markup = base? ((valorVenda/base) - 1) * 100 : 0;
+      const baseUnit = p.custoUnitario !== undefined ? p.custoUnitario :
+                       (p.quantidade ? (p.custoOriginal + p.icmsSt) / p.quantidade : 0);
+      const resultado = baseUnit * (1 + taxa/100 + margem/100);
+      const markup = baseUnit? ((valorVenda/baseUnit) - 1) * 100 : 0;
       const lucroEfetivo = valorVenda? ((valorVenda - resultado)/valorVenda)*100 : 0;
       resultadoCell.textContent = resultado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
       markupCell.textContent = markup.toFixed(2)+'%';
