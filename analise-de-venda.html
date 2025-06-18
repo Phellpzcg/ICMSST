@@ -46,7 +46,15 @@
     <tbody></tbody>
   </table>
 <script>
-  let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
+  let dadosProdutos = [];
+  try {
+    dadosProdutos = JSON.parse(window.name || '[]');
+    if (!dadosProdutos.length) {
+      dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
+    }
+  } catch (e) {
+    dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
+  }
   let ncmMap = {};
   fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
     .then(res => res.json())
@@ -125,6 +133,7 @@
     qtdInput.addEventListener('input', () => {
       p.quantidade = parseFloat(qtdInput.value) || 0;
       localStorage.setItem('produtosCalculados', JSON.stringify(dadosProdutos));
+      window.name = JSON.stringify(dadosProdutos);
       calcular();
     });
     document.getElementById('taxaCartao').addEventListener('input', habilitar);

@@ -279,6 +279,7 @@
                   margemLP: categoria.margemLP
                 };
                 localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
+                window.name = JSON.stringify(produtosCalculados);
               };
               let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
@@ -301,6 +302,7 @@
 
         document.getElementById('totalImpostoInfo').textContent = `Total Imposto: ${totalImpostoNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
         localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
+        window.name = JSON.stringify(produtosCalculados);
       };
       reader.readAsText(file);
     });
