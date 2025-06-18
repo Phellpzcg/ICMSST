@@ -138,18 +138,19 @@
     fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
       .then(res => res.json())
       .then(rows => {
+        console.log("Dados da planilha:", rows);
         rows.forEach(r => {
-          const prefix = r.NCM || r.ncm;
+          const prefix = r.prefixo;
           if (prefix) {
             ncmMvaMap[prefix] = {
-              descricao: r.Descricao || r.descricao,
-              mva: parseFloat(r.MVA || r.mva) || 0,
-              margemSN: parseFloat(r.SN || r.sn || 0),
-              margemLP: parseFloat(r.LP || r.lp || 0)
+              descricao: r.descricao,
+              mva: parseFloat((r.mva || '0').replace(',', '.')) || 0
             };
           }
         });
-      });
+        console.log(`Planilha de MVA carregada com ${Object.keys(ncmMvaMap).length} registros`);
+      })
+      .catch(err => console.error("Erro ao carregar planilha de MVA:", err));
 
     document.getElementById('xmlFileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];

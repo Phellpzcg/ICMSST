@@ -44,8 +44,21 @@
   let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
   let ncmMap = {};
   fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
-    .then(r=>r.json())
-    .then(rows=>{ rows.forEach(r=>{ ncmMap[r.NCM||r.ncm] = r; }); });
+    .then(res => res.json())
+    .then(rows => {
+      console.log("Dados da planilha:", rows);
+      rows.forEach(r => {
+        const prefix = r.prefixo;
+        if (prefix) {
+          ncmMap[prefix] = {
+            descricao: r.descricao,
+            mva: parseFloat((r.mva || '0').replace(',', '.')) || 0
+          };
+        }
+      });
+      console.log(`Planilha de MVA carregada com ${Object.keys(ncmMap).length} registros`);
+    })
+    .catch(err => console.error("Erro ao carregar planilha de MVA:", err));
 
   const tbody = document.querySelector('#vendaTable tbody');
   dadosProdutos.forEach((p,i)=>{
