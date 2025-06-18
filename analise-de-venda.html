@@ -14,6 +14,7 @@
     button { padding:8px 16px; border:none; background:#f1c40f; cursor:pointer; border-radius:4px; font-weight:bold; }
     input.valor-venda { width:80px; padding:4px; border:1px solid #ccc; border-radius:4px; }
     input.valor-venda[disabled] { background:#eee; }
+    footer { background:#333; color:#fff; text-align:center; padding:10px; margin-top:20px; }
   </style>
 </head>
 <body>
@@ -21,11 +22,6 @@
     <button onclick="window.location.href='index.html'">Voltar para Página Inicial</button>
     <div>
       Taxa Cartão (%): <input type="number" id="taxaCartao" style="width:60px;">
-      Regime: <select id="regime">
-        <option value="">Selecione</option>
-        <option value="SN">Simples Nacional</option>
-        <option value="LP">Lucro Presumido</option>
-      </select>
     </div>
   </header>
   <table id="vendaTable">
@@ -35,8 +31,8 @@
         <th>Quantidade</th>
         <th>Valor de Venda</th>
         <th>Taxa Cartão</th>
-        <th>SN</th>
-        <th>LP</th>
+        <th>Monof. PIS/COFINS</th>
+        <th>Trib. Integramente</th>
         <th>Resultado</th>
         <th>% Markup</th>
         <th>% Lucro Efetivo</th>
@@ -45,7 +41,17 @@
     </thead>
     <tbody></tbody>
   </table>
-<script>
+  <footer>
+    <p><strong>Como utilizar esta página:</strong></p>
+    <ol>
+      <li>Informe a taxa do cartão para habilitar a edição dos valores de venda.</li>
+      <li>Preencha o valor de venda de cada produto.</li>
+      <li>Digite a alíquota de <em>Monof. PIS/COFINS</em> ou de <em>Trib. Integramente</em> em cada linha. Quando houver valor na primeira coluna, a segunda permanecerá desabilitada.</li>
+      <li>Confira os resultados calculados automaticamente.</li>
+    </ol>
+    <p>As alíquotas devem ser confirmadas com sua contabilidade.</p>
+  </footer>
+  <script>
   let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
   let ncmMap = {};
   fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
@@ -84,8 +90,20 @@
     input.disabled = true;
     valorVendaCell.appendChild(input);
     const taxaCell = row.insertCell(3);
-    const snCell = row.insertCell(4);
-    const lpCell = row.insertCell(5);
+    const monofCell = row.insertCell(4);
+    const tribCell = row.insertCell(5);
+    const monofInput = document.createElement('input');
+    monofInput.type = 'number';
+    monofInput.style.width = '60px';
+    monofInput.step = '0.01';
+    monofInput.value = '0';
+    monofCell.appendChild(monofInput);
+    const tribInput = document.createElement('input');
+    tribInput.type = 'number';
+    tribInput.style.width = '60px';
+    tribInput.step = '0.01';
+    tribInput.value = '0';
+    tribCell.appendChild(tribInput);
     const resultadoCell = row.insertCell(6);
     const markupCell = row.insertCell(7);
     const lucroCell = row.insertCell(8);
@@ -94,27 +112,23 @@
     function calcular(){
       const valorVenda = parseFloat(input.value)||0;
       const taxa = parseFloat(document.getElementById('taxaCartao').value)||0;
-      const regime = document.getElementById('regime').value;
-      const margemSN = p.margemSN||0;
-      const margemLP = p.margemLP||0;
+      const percMonof = parseFloat(monofInput.value)||0;
+      const percTrib = tribInput.disabled ? 0 : parseFloat(tribInput.value)||0;
       const qtdAtual = parseFloat(qtdInput.value) || 0;
       const baseUnit = qtdAtual ? (p.custoOriginal + p.icmsSt) / qtdAtual : 0;
 
       const valorTaxa = valorVenda * (taxa/100);
-      const valorSN = valorVenda * (margemSN/100);
-      const valorLP = valorVenda * (margemLP/100);
-      const snAplicado = regime === 'SN' ? valorSN : 0;
-      const lpAplicado = regime === 'LP' ? valorLP : 0;
+      const valorMonof = valorVenda * (percMonof/100);
+      const valorTrib = valorVenda * (percTrib/100);
       const icmsUnit = qtdAtual ? p.icmsSt / qtdAtual : 0;
 
-      const custoTotal = icmsUnit + valorTaxa + snAplicado + lpAplicado;
-      const resultado = baseUnit + valorTaxa + snAplicado + lpAplicado;
+      const custoTotal = icmsUnit + valorTaxa + valorMonof + valorTrib;
+      const resultado = baseUnit + valorTaxa + valorMonof + valorTrib;
       const markup = baseUnit? ((valorVenda/baseUnit) - 1) * 100 : 0;
       const lucroEfetivo = valorVenda? ((valorVenda - resultado)/valorVenda)*100 : 0;
 
       taxaCell.textContent = valorTaxa.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-      snCell.textContent = snAplicado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-      lpCell.textContent = lpAplicado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+      // valores de impostos não exibidos individualmente
       resultadoCell.textContent = resultado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
       markupCell.textContent = markup.toFixed(2)+'%';
       lucroCell.textContent = lucroEfetivo.toFixed(2)+'%';
@@ -127,11 +141,20 @@
       localStorage.setItem('produtosCalculados', JSON.stringify(dadosProdutos));
       calcular();
     });
+    monofInput.addEventListener('input', () => {
+      if(parseFloat(monofInput.value)) {
+        tribInput.value = '';
+        tribInput.disabled = true;
+      } else {
+        tribInput.disabled = false;
+      }
+      calcular();
+    });
+    tribInput.addEventListener('input', calcular);
     document.getElementById('taxaCartao').addEventListener('input', habilitar);
-    document.getElementById('regime').addEventListener('change', habilitar);
 
     function habilitar(){
-      if(document.getElementById('taxaCartao').value && document.getElementById('regime').value){
+      if(document.getElementById('taxaCartao').value){
         document.querySelectorAll('.valor-venda').forEach(el=>el.disabled=false);
         calcular();
       }
