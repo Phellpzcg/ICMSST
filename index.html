@@ -77,9 +77,6 @@
       background-color: #ddffdd;
       font-weight: bold;
     }
-    .mva-select {
-      width: 100%;
-    }
     footer {
       background-color: #333;
       color: #fff;
@@ -104,6 +101,7 @@
     <span id="notaInfo">Nota Fiscal: -</span>
     <span id="totalImpostoInfo">Total Imposto: R$ 0,00</span>
   </div>
+  <div id="alerta" style="text-align:center;color:#d9534f;font-weight:bold;"></div>
 
   <table id="productTable">
     <thead>
@@ -112,6 +110,7 @@
         <th>CFOP</th>
         <th>CST</th>
         <th>NCM</th>
+        <th>Quantidade</th>
         <th>R$ Total Produto</th>
         <th>Outros</th>
         <th>IPI</th>
@@ -127,16 +126,30 @@
   </table>
 
   <footer>
-    Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553
+    <p>Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553</p>
+    <p style="margin-top:10px; font-size:12px;">Art. 294 do ICMS/BA - Margens e alíquotas variam conforme a categoria do produto. Consulte a legislação para maiores detalhes.</p>
   </footer>
 
   <script>
     let ncmMvaMap = {};
+    let produtosCalculados = [];
     const ALQ_FIXA = 0.205;
 
-    fetch('ncm_mva.json')
+    fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/PÃ¡gina1')
       .then(res => res.json())
-      .then(data => ncmMvaMap = data);
+      .then(rows => {
+        rows.forEach(r => {
+          const prefix = r.NCM || r.ncm;
+          if (prefix) {
+            ncmMvaMap[prefix] = {
+              descricao: r.Descricao || r.descricao,
+              mva: parseFloat(r.MVA || r.mva) || 0,
+              margemSN: parseFloat(r.SN || r.sn || 0),
+              margemLP: parseFloat(r.LP || r.lp || 0)
+            };
+          }
+        });
+      });
 
     document.getElementById('xmlFileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];
@@ -149,6 +162,7 @@
         const products = xmlDoc.getElementsByTagName('prod');
         const tbody = document.querySelector('#productTable tbody');
         tbody.innerHTML = '';
+        produtosCalculados = [];
         let totalImpostoNota = 0;
 
         const fornecedor = xmlDoc.querySelector('emit > xNome')?.textContent || '-';
@@ -190,16 +204,17 @@
           row.insertCell(1).textContent = cfop;
           row.insertCell(2).textContent = cst;
           row.insertCell(3).textContent = ncm;
-          row.insertCell(4).textContent = valorProd.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          row.insertCell(5).textContent = outros.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          row.insertCell(6).textContent = ipi.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          row.insertCell(7).textContent = desconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          row.insertCell(4).textContent = qtd;
+          row.insertCell(5).textContent = valorProd.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          row.insertCell(6).textContent = outros.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          row.insertCell(7).textContent = ipi.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          row.insertCell(8).textContent = desconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-          const categoriaCell = row.insertCell(8);
-          const impostoCell = row.insertCell(9);
-          const totalCell = row.insertCell(10);
-          const custoCell = row.insertCell(11);
-          const efetivoCell = row.insertCell(12);
+          const categoriaCell = row.insertCell(9);
+          const impostoCell = row.insertCell(10);
+          const totalCell = row.insertCell(11);
+          const custoCell = row.insertCell(12);
+          const efetivoCell = row.insertCell(13);
 
           const baseCalculo = valorProd + frete + ipi + outros - desconto;
 
@@ -221,56 +236,51 @@
             custoCell.className = 'highlight-custo';
             efetivoCell.textContent = '-';
           } else {
-            const mvaOriginal = categoria?.mva || 0;
-            const mvaAjustada = cfop.startsWith('6')
-              ? (((1 + mvaOriginal) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1
-              : mvaOriginal;
+            if (!categoria) {
+              categoriaCell.textContent = 'Erro';
+              impostoCell.textContent = 'Erro';
+              totalCell.textContent = 'Erro';
+              custoCell.textContent = 'Erro';
+              efetivoCell.textContent = 'Erro';
+            } else {
+              const mvaOriginal = categoria.mva || 0;
+              const mvaAjustada = cfop.startsWith('6')
+                ? (((1 + mvaOriginal) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1
+                : mvaOriginal;
 
-            let icmsST = ((baseCalculo * (1 + mvaAjustada)) * ALQ_FIXA) - vICMS;
-            totalImpostoNota += icmsST;
+              let icmsST = ((baseCalculo * (1 + mvaAjustada)) * ALQ_FIXA) - vICMS;
+              totalImpostoNota += icmsST;
 
-            let total = baseCalculo + icmsST;
-            let custoFinal = qtd > 0 ? total / qtd : 0;
-            let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
+              let total = baseCalculo + icmsST;
+              let custoFinal = qtd > 0 ? total / qtd : 0;
+              let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
-            const select = document.createElement('select');
-            select.className = 'mva-select';
-            for (const key in ncmMvaMap) {
-              const option = document.createElement('option');
-              option.value = ncmMvaMap[key].mva;
-              option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
-              if (key === prefixo) option.selected = true;
-              select.appendChild(option);
-            }
-            categoriaCell.appendChild(select);
-
-            impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            impostoCell.className = 'highlight-imposto';
-            totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            custoCell.className = 'highlight-custo';
-            efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
-
-            select.addEventListener('change', function () {
-              const novaMva = parseFloat(this.value);
-              const novaMvaAjustada = cfop.startsWith('6')
-                ? (((1 + novaMva) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1
-                : novaMva;
-
-              icmsST = ((baseCalculo * (1 + novaMvaAjustada)) * ALQ_FIXA) - vICMS;
-              total = baseCalculo + icmsST;
-              custoFinal = qtd > 0 ? total / qtd : 0;
-              percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
-
+              categoriaCell.textContent = `${categoria.descricao} (${(mvaAjustada * 100).toFixed(2)}%)`;
               impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+              impostoCell.className = 'highlight-imposto';
               totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
               custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+              custoCell.className = 'highlight-custo';
               efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
-            });
+              produtosCalculados.push({
+                descricao: nome,
+                quantidade: qtd,
+                custoOriginal: baseCalculo,
+                icmsSt: icmsST,
+                margemSN: categoria.margemSN,
+                margemLP: categoria.margemLP
+              });
+              if (cfop.startsWith('6')) {
+                document.getElementById('alerta').textContent = `⚠️ O fornecedor é de fora do estado. A alíquota foi ajustada com base na MVA Ajustada: ${(mvaAjustada * 100).toFixed(2)}%`;
+              } else {
+                document.getElementById('alerta').textContent = '';
+              }
+            }
           }
         }
 
         document.getElementById('totalImpostoInfo').textContent = `Total Imposto: ${totalImpostoNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+        localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
       };
       reader.readAsText(file);
     });
