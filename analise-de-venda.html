@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Análise de Venda</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f9f9f9; margin:0; padding:20px; }
+    table { width:100%; border-collapse: collapse; margin-top:20px; font-size:12px; }
+    th, td { border:1px solid #ccc; padding:8px; text-align:left; }
+    th { background:#333; color:#f1c40f; }
+    tr:nth-child(even) { background:#f2f2f2; }
+    header { display:flex; justify-content:space-between; align-items:center; }
+    button { padding:8px 16px; border:none; background:#f1c40f; cursor:pointer; border-radius:4px; font-weight:bold; }
+    input[disabled] { background:#eee; }
+  </style>
+</head>
+<body>
+  <header>
+    <button onclick="window.location.href='index.html'">Voltar para Página Inicial</button>
+    <div>
+      Taxa Cartão (%): <input type="number" id="taxaCartao" style="width:60px;">
+      Regime: <select id="regime">
+        <option value="">Selecione</option>
+        <option value="SN">Simples Nacional</option>
+        <option value="LP">Lucro Presumido</option>
+      </select>
+    </div>
+  </header>
+  <table id="vendaTable">
+    <thead>
+      <tr>
+        <th>Descrição</th>
+        <th>Quantidade</th>
+        <th>Valor de Venda</th>
+        <th>Resultado</th>
+        <th>% Markup</th>
+        <th>% Lucro Efetivo</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+<script>
+  let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
+  let ncmMap = {};
+  fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/P\u00C3\u00A1gina1')
+    .then(r=>r.json())
+    .then(rows=>{ rows.forEach(r=>{ ncmMap[r.NCM||r.ncm] = r; }); });
+
+  const tbody = document.querySelector('#vendaTable tbody');
+  dadosProdutos.forEach((p,i)=>{
+    const row = tbody.insertRow();
+    row.insertCell(0).textContent = p.descricao;
+    row.insertCell(1).textContent = p.quantidade;
+    const valorVendaCell = row.insertCell(2);
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'valor-venda';
+    input.disabled = true;
+    valorVendaCell.appendChild(input);
+    const resultadoCell = row.insertCell(3);
+    const markupCell = row.insertCell(4);
+    const lucroCell = row.insertCell(5);
+
+    function calcular(){
+      const valorVenda = parseFloat(input.value)||0;
+      const taxa = parseFloat(document.getElementById('taxaCartao').value)||0;
+      const regime = document.getElementById('regime').value;
+      const margem = regime==='SN'? (p.margemSN||0) : regime==='LP'? (p.margemLP||0) : 0;
+      const base = p.custoOriginal + p.icmsSt;
+      const resultado = base * (1 + taxa/100 + margem/100);
+      const markup = base? ((valorVenda/base) - 1) * 100 : 0;
+      const lucroEfetivo = valorVenda? ((valorVenda - resultado)/valorVenda)*100 : 0;
+      resultadoCell.textContent = resultado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+      markupCell.textContent = markup.toFixed(2)+'%';
+      lucroCell.textContent = lucroEfetivo.toFixed(2)+'%';
+    }
+
+    input.addEventListener('input', calcular);
+    document.getElementById('taxaCartao').addEventListener('input', habilitar);
+    document.getElementById('regime').addEventListener('change', habilitar);
+
+    function habilitar(){
+      if(document.getElementById('taxaCartao').value && document.getElementById('regime').value){
+        document.querySelectorAll('.valor-venda').forEach(el=>el.disabled=false);
+        calcular();
+      }
+    }
+  });
+</script>
+</body>
+</html>
