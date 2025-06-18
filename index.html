@@ -91,6 +91,8 @@
     <h1>Cálculo ICMS ST - Exclusivo para Farmácias</h1>
   </header>
 
+  <button onclick="window.location.href='analise-de-venda.html'">Abrir Análise de Venda</button>
+
   <div class="upload-section">
     <input type="file" id="xmlFileInput" accept=".xml">
     <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
@@ -125,6 +127,14 @@
     <tbody></tbody>
   </table>
 
+  <div style="background-color: #fff8dc; border: 1px solid #ccc; padding: 15px; margin: 20px;">
+    <strong>📌 Por que farmácias pagam ICMS antecipado?</strong><br><br>
+    Conforme o <strong>Art. 294 do Regulamento do ICMS da Bahia</strong>, farmácias, drogarias e casas de produtos naturais devem recolher ICMS por antecipação nas aquisições de produtos não alcançados pela substituição tributária. As margens de valor agregado (MVA) são aplicadas nas compras internas e ajustadas em operações interestaduais conforme §14 do art. 289.
+    <br><br>
+    <strong>Exemplos de MVA nas aquisições internas:</strong><br>
+    Gêneros alimentícios: 50%, Bebidas alcoólicas: 30%, Perfumarias e higiene: 60%, Cosméticos: 60%, Material de limpeza: 40%, Jóias e relógios: 70%, Outras mercadorias: 40%.
+  </div>
+
   <footer>
     <p>Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553</p>
     <p style="margin-top:10px; font-size:12px;">Art. 294 do ICMS/BA - Margens e alíquotas variam conforme a categoria do produto. Consulte a legislação para maiores detalhes.</p>
@@ -135,21 +145,23 @@
     let produtosCalculados = [];
     const ALQ_FIXA = 0.205;
 
-    fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/PÃ¡gina1')
+    fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
       .then(res => res.json())
       .then(rows => {
-        rows.forEach(r => {
-          const prefix = r.NCM || r.ncm;
+        if (!Array.isArray(rows)) throw new Error('Formato de dados inválido.');
+        rows.forEach(row => {
+          const prefix = row.NCM || row.ncm;
           if (prefix) {
             ncmMvaMap[prefix] = {
-              descricao: r.Descricao || r.descricao,
-              mva: parseFloat(r.MVA || r.mva) || 0,
-              margemSN: parseFloat(r.SN || r.sn || 0),
-              margemLP: parseFloat(r.LP || r.lp || 0)
+              descricao: row.Descricao || row.descricao,
+              mva: parseFloat(String(row.MVA || row.mva || '0').replace(',', '.')) || 0,
+              margemSN: parseFloat(String(row.SN || row.sn || '0').replace(',', '.')) || 0,
+              margemLP: parseFloat(String(row.LP || row.lp || '0').replace(',', '.')) || 0
             };
           }
         });
-      });
+      })
+      .catch(err => console.error('Erro ao carregar planilha', err));
 
     document.getElementById('xmlFileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];

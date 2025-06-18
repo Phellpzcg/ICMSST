@@ -43,9 +43,16 @@
 <script>
   let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
   let ncmMap = {};
-  fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/P\u00C3\u00A1gina1')
-    .then(r=>r.json())
-    .then(rows=>{ rows.forEach(r=>{ ncmMap[r.NCM||r.ncm] = r; }); });
+  fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
+    .then(r => r.json())
+    .then(rows => {
+      if (!Array.isArray(rows)) throw new Error('Formato de dados inválido.');
+      rows.forEach(row => {
+        const key = row.NCM || row.ncm;
+        if (key) ncmMap[key] = row;
+      });
+    })
+    .catch(err => console.error('Erro ao carregar planilha', err));
 
   const tbody = document.querySelector('#vendaTable tbody');
   dadosProdutos.forEach((p,i)=>{
