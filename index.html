@@ -134,9 +134,21 @@
     let ncmMvaMap = {};
     const ALQ_FIXA = 0.205;
 
-    fetch('ncm_mva.json')
+    const SHEET_URL = 'https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/P%C3%A1gina1';
+
+    fetch(SHEET_URL)
       .then(res => res.json())
-      .then(data => ncmMvaMap = data);
+      .then(data => {
+        ncmMvaMap = {};
+        data.forEach(item => {
+          const prefixo = item.prefixo;
+          const mva = parseFloat(item.mva);
+          ncmMvaMap[prefixo] = {
+            descricao: item.descricao,
+            mva
+          };
+        });
+      });
 
     document.getElementById('xmlFileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];
@@ -233,16 +245,20 @@
             let custoFinal = qtd > 0 ? total / qtd : 0;
             let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
-            const select = document.createElement('select');
-            select.className = 'mva-select';
-            for (const key in ncmMvaMap) {
-              const option = document.createElement('option');
-              option.value = ncmMvaMap[key].mva;
-              option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
-              if (key === prefixo) option.selected = true;
-              select.appendChild(option);
+            if (categoria) {
+              const select = document.createElement('select');
+              select.className = 'mva-select';
+              for (const key in ncmMvaMap) {
+                const option = document.createElement('option');
+                option.value = ncmMvaMap[key].mva;
+                option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
+                if (key === prefixo) option.selected = true;
+                select.appendChild(option);
+              }
+              categoriaCell.appendChild(select);
+            } else {
+              categoriaCell.textContent = 'NCM não cadastrada, solicite ao suporte';
             }
-            categoriaCell.appendChild(select);
 
             impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             impostoCell.className = 'highlight-imposto';
