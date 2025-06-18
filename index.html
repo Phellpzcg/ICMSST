@@ -77,8 +77,8 @@
       background-color: #ddffdd;
       font-weight: bold;
     }
-    .mva-select {
-      width: 100%;
+    header button {
+      margin-left: auto;
     }
     footer {
       background-color: #333;
@@ -92,6 +92,7 @@
   <header>
     <img src="img/logo.jpg" alt="Logo Domínio Farma">
     <h1>Cálculo ICMS ST - Exclusivo para Farmácias</h1>
+    <button id="adminBtn" onclick="openAdmin()">Administração</button>
   </header>
 
   <div class="upload-section">
@@ -131,12 +132,27 @@
   </footer>
 
   <script>
+    // Mapa de MVAs carregado do arquivo ou do armazenamento local
     let ncmMvaMap = {};
     const ALQ_FIXA = 0.205;
 
+    // Carrega arquivo base e aplica dados do localStorage se existirem
     fetch('ncm_mva.json')
       .then(res => res.json())
-      .then(data => ncmMvaMap = data);
+      .then(data => {
+        const stored = localStorage.getItem('ncmMvaMap');
+        ncmMvaMap = stored ? JSON.parse(stored) : data;
+      });
+
+    // Validação simples de acesso à área administrativa
+    function openAdmin() {
+      const pwd = prompt('Digite a senha de administração:');
+      if (pwd === '123456') {
+        window.location.href = 'admin.html';
+      } else if (pwd !== null) {
+        alert('Senha incorreta.');
+      }
+    }
 
     document.getElementById('xmlFileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];
@@ -233,16 +249,11 @@
             let custoFinal = qtd > 0 ? total / qtd : 0;
             let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
-            const select = document.createElement('select');
-            select.className = 'mva-select';
-            for (const key in ncmMvaMap) {
-              const option = document.createElement('option');
-              option.value = ncmMvaMap[key].mva;
-              option.textContent = `${key} - ${ncmMvaMap[key].descricao} (${(ncmMvaMap[key].mva * 100).toFixed(2)}%)`;
-              if (key === prefixo) option.selected = true;
-              select.appendChild(option);
+            if (categoria) {
+              categoriaCell.textContent = `${categoria.descricao} (${(categoria.mva * 100).toFixed(2)}%)`;
+            } else {
+              categoriaCell.textContent = 'NCM não cadastrada, solicite ao suporte';
             }
-            categoriaCell.appendChild(select);
 
             impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             impostoCell.className = 'highlight-imposto';
@@ -251,22 +262,6 @@
             custoCell.className = 'highlight-custo';
             efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
 
-            select.addEventListener('change', function () {
-              const novaMva = parseFloat(this.value);
-              const novaMvaAjustada = cfop.startsWith('6')
-                ? (((1 + novaMva) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1
-                : novaMva;
-
-              icmsST = ((baseCalculo * (1 + novaMvaAjustada)) * ALQ_FIXA) - vICMS;
-              total = baseCalculo + icmsST;
-              custoFinal = qtd > 0 ? total / qtd : 0;
-              percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
-
-              impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
-            });
           }
         }
 

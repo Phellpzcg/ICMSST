@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Administração - NCM/MVA</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #333;
+      color: #f1c40f;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+    }
+    input[type="text"], input[type="number"] {
+      padding: 5px;
+      width: 200px;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #f1c40f;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Administração de MVAs</h1>
+
+  <table id="mvaTable">
+    <thead>
+      <tr>
+        <th>Prefixo NCM</th>
+        <th>Descrição</th>
+        <th>MVA (%)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Novo Item</h2>
+  <form id="mvaForm">
+    <label>Prefixo: <input type="text" id="prefixo" maxlength="4" required></label>
+    <label>Descrição: <input type="text" id="descricao" required></label>
+    <label>MVA (%): <input type="number" id="mva" step="0.01" min="0" required></label>
+    <button type="submit">Salvar</button>
+  </form>
+
+  <script>
+    // Mapa carregado do JSON ou do armazenamento local
+    let ncmMvaMap = {};
+
+    function renderTable() {
+      const tbody = document.querySelector('#mvaTable tbody');
+      tbody.innerHTML = '';
+      Object.keys(ncmMvaMap).sort().forEach(pref => {
+        const item = ncmMvaMap[pref];
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = pref;
+        row.insertCell(1).textContent = item.descricao;
+        row.insertCell(2).textContent = (item.mva * 100).toFixed(2);
+      });
+    }
+
+    fetch('ncm_mva.json')
+      .then(res => res.json())
+      .then(data => {
+        const stored = localStorage.getItem('ncmMvaMap');
+        ncmMvaMap = stored ? JSON.parse(stored) : data;
+        renderTable();
+      });
+
+    // Adiciona novo item ao mapa e salva no localStorage
+    document.getElementById('mvaForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const prefix = document.getElementById('prefixo').value.trim();
+      const desc = document.getElementById('descricao').value.trim();
+      const mvaVal = parseFloat(document.getElementById('mva').value);
+      if (!prefix || !desc || isNaN(mvaVal)) {
+        alert('Preencha todos os campos.');
+        return;
+      }
+      ncmMvaMap[prefix] = { descricao: desc, mva: mvaVal / 100 };
+      localStorage.setItem('ncmMvaMap', JSON.stringify(ncmMvaMap));
+      renderTable();
+      this.reset();
+    });
+  </script>
+</body>
+</html>
