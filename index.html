@@ -149,7 +149,9 @@
           if (prefix) {
             ncmMvaMap[prefix] = {
               descricao: r.descricao,
-              mva: parseFloat((r.mva || '0').replace(',', '.')) || 0
+              mva: parseFloat((r.mva || '0').replace(',', '.')) || 0,
+              margemSN: parseFloat((r.SN || r.sn || '0').replace(',', '.')) || 0,
+              margemLP: parseFloat((r.LP || r.lp || '0').replace(',', '.')) || 0
             };
           }
         });

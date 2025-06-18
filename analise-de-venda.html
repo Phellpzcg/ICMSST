@@ -34,9 +34,13 @@
         <th>Descrição</th>
         <th>Quantidade</th>
         <th>Valor de Venda</th>
+        <th>Taxa Cartão</th>
+        <th>SN</th>
+        <th>LP</th>
         <th>Resultado</th>
         <th>% Markup</th>
         <th>% Lucro Efetivo</th>
+        <th>Custo Total Operação</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -53,7 +57,9 @@
         if (prefix) {
           ncmMap[prefix] = {
             descricao: r.descricao,
-            mva: parseFloat((r.mva || '0').replace(',', '.')) || 0
+            mva: parseFloat((r.mva || '0').replace(',', '.')) || 0,
+            margemSN: parseFloat((r.SN || r.sn || '0').replace(',', '.')) || 0,
+            margemLP: parseFloat((r.LP || r.lp || '0').replace(',', '.')) || 0
           };
         }
       });
@@ -72,23 +78,42 @@
     input.className = 'valor-venda';
     input.disabled = true;
     valorVendaCell.appendChild(input);
-    const resultadoCell = row.insertCell(3);
-    const markupCell = row.insertCell(4);
-    const lucroCell = row.insertCell(5);
+    const taxaCell = row.insertCell(3);
+    const snCell = row.insertCell(4);
+    const lpCell = row.insertCell(5);
+    const resultadoCell = row.insertCell(6);
+    const markupCell = row.insertCell(7);
+    const lucroCell = row.insertCell(8);
+    const custoTotalCell = row.insertCell(9);
 
     function calcular(){
       const valorVenda = parseFloat(input.value)||0;
       const taxa = parseFloat(document.getElementById('taxaCartao').value)||0;
       const regime = document.getElementById('regime').value;
-      const margem = regime==='SN'? (p.margemSN||0) : regime==='LP'? (p.margemLP||0) : 0;
+      const margemSN = p.margemSN||0;
+      const margemLP = p.margemLP||0;
       const baseUnit = p.custoUnitario !== undefined ? p.custoUnitario :
                        (p.quantidade ? (p.custoOriginal + p.icmsSt) / p.quantidade : 0);
-      const resultado = baseUnit * (1 + taxa/100 + margem/100);
+
+      const valorTaxa = valorVenda * (taxa/100);
+      const valorSN = valorVenda * (margemSN/100);
+      const valorLP = valorVenda * (margemLP/100);
+      const snAplicado = regime === 'SN' ? valorSN : 0;
+      const lpAplicado = regime === 'LP' ? valorLP : 0;
+      const icmsUnit = p.quantidade ? p.icmsSt / p.quantidade : 0;
+
+      const custoTotal = icmsUnit + valorTaxa + snAplicado + lpAplicado;
+      const resultado = baseUnit + valorTaxa + snAplicado + lpAplicado;
       const markup = baseUnit? ((valorVenda/baseUnit) - 1) * 100 : 0;
       const lucroEfetivo = valorVenda? ((valorVenda - resultado)/valorVenda)*100 : 0;
+
+      taxaCell.textContent = valorTaxa.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+      snCell.textContent = snAplicado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+      lpCell.textContent = lpAplicado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
       resultadoCell.textContent = resultado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
       markupCell.textContent = markup.toFixed(2)+'%';
       lucroCell.textContent = lucroEfetivo.toFixed(2)+'%';
+      custoTotalCell.textContent = custoTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
     }
 
     input.addEventListener('input', calcular);
