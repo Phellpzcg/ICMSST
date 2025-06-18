@@ -53,6 +53,13 @@
   </footer>
   <script>
   let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
+  if (!dadosProdutos.length) {
+    const aviso = document.createElement('p');
+    aviso.textContent = 'Nenhum produto encontrado. Carregue a nota na página inicial.';
+    aviso.style.fontWeight = 'bold';
+    aviso.style.color = '#d9534f';
+    document.body.insertBefore(aviso, document.querySelector('footer'));
+  }
   let ncmMap = {};
   fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
     .then(res => res.json())
@@ -87,6 +94,8 @@
     const input = document.createElement('input');
     input.type = 'number';
     input.className = 'valor-venda';
+    input.step = '0.01';
+    input.placeholder = '0,00';
     input.disabled = true;
     valorVendaCell.appendChild(input);
     const taxaCell = row.insertCell(3);
@@ -96,12 +105,14 @@
     monofInput.type = 'number';
     monofInput.style.width = '60px';
     monofInput.step = '0.01';
+    monofInput.placeholder = '0,00';
     monofInput.value = '0';
     monofCell.appendChild(monofInput);
     const tribInput = document.createElement('input');
     tribInput.type = 'number';
     tribInput.style.width = '60px';
     tribInput.step = '0.01';
+    tribInput.placeholder = '0,00';
     tribInput.value = '0';
     tribCell.appendChild(tribInput);
     const resultadoCell = row.insertCell(6);
@@ -159,6 +170,7 @@
         calcular();
       }
     }
+    calcular();
   });
 </script>
 </body>
