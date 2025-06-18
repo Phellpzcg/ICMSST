@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tributação na Venda</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f9f9f9; margin:0; padding:20px; }
+    table { width:100%; border-collapse: collapse; margin-top:20px; font-size:12px; }
+    th, td { border:1px solid #ccc; padding:8px; text-align:left; }
+    th { background:#333; color:#f1c40f; }
+    tr:nth-child(even) { background:#f2f2f2; }
+    header { display:flex; justify-content:space-between; align-items:center; }
+    button { padding:8px 16px; border:none; background:#f1c40f; cursor:pointer; border-radius:4px; font-weight:bold; }
+    input.valor-venda { width:80px; padding:4px; border:1px solid #ccc; border-radius:4px; }
+    input.valor-venda[disabled] { background:#eee; }
+    input.percent { width:60px; padding:4px; border:1px solid #ccc; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <button onclick="window.location.href='index.html'">Voltar para Página Inicial</button>
+    <div>
+      Taxa Cartão (%): <input type="number" id="taxaCartao" style="width:60px;">
+    </div>
+  </header>
+  <table id="vendaTable">
+    <thead>
+      <tr>
+        <th>Descrição</th>
+        <th>Quantidade</th>
+        <th>Valor de Venda</th>
+        <th>Taxa Cartão</th>
+        <th>Monof. PIS/COFINS</th>
+        <th>Trib. Integramente</th>
+        <th>Resultado</th>
+        <th>% Markup</th>
+        <th>% Lucro Efetivo</th>
+        <th>Custo Total Operação</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+<script>
+  const dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
+  const tbody = document.querySelector('#vendaTable tbody');
+
+  dadosProdutos.forEach((p,i)=>{
+    const row = tbody.insertRow();
+    row.insertCell(0).textContent = p.descricao || '';
+
+    const qtdCell = row.insertCell(1);
+    const qtdInput = document.createElement('input');
+    qtdInput.type = 'number';
+    qtdInput.value = p.quantidade || 0;
+    qtdInput.style.width = '60px';
+    qtdCell.appendChild(qtdInput);
+
+    const valorVendaCell = row.insertCell(2);
+    const inputVenda = document.createElement('input');
+    inputVenda.type = 'number';
+    inputVenda.className = 'valor-venda';
+    inputVenda.disabled = true;
+    valorVendaCell.appendChild(inputVenda);
+
+    const taxaCell = row.insertCell(3);
+    const monofCell = row.insertCell(4);
+    const tribCell = row.insertCell(5);
+    const resultadoCell = row.insertCell(6);
+    const markupCell = row.insertCell(7);
+    const lucroCell = row.insertCell(8);
+    const custoTotalCell = row.insertCell(9);
+
+    const monofInput = document.createElement('input');
+    monofInput.type = 'number';
+    monofInput.className = 'percent';
+    monofInput.value = 0;
+    monofCell.appendChild(monofInput);
+
+    const tribInput = document.createElement('input');
+    tribInput.type = 'number';
+    tribInput.className = 'percent';
+    tribInput.value = 0;
+    tribCell.appendChild(tribInput);
+
+    function calcular(){
+      const valorVenda = parseFloat(inputVenda.value) || 0;
+      const taxa = parseFloat(document.getElementById('taxaCartao').value) || 0;
+      const monofPercent = monofInput.disabled ? 0 : parseFloat(monofInput.value) || 0;
+      const tribPercent = tribInput.disabled ? 0 : parseFloat(tribInput.value) || 0;
+      const qtdAtual = parseFloat(qtdInput.value) || 0;
+
+      const baseUnit = qtdAtual ? (p.custoOriginal + p.icmsSt) / qtdAtual : 0;
+      const valorTaxa = valorVenda * (taxa/100);
+      const valorMonof = valorVenda * (monofPercent/100);
+      const valorTrib = valorVenda * (tribPercent/100);
+      const icmsUnit = qtdAtual ? p.icmsSt / qtdAtual : 0;
+
+      const custoTotal = icmsUnit + valorTaxa + valorMonof + valorTrib;
+      const resultado = baseUnit + valorTaxa + valorMonof + valorTrib;
+      const markup = baseUnit ? ((valorVenda/baseUnit) - 1) * 100 : 0;
+      const lucroEfetivo = valorVenda ? ((valorVenda - resultado)/valorVenda)*100 : 0;
+
+      taxaCell.textContent = valorTaxa.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+      resultadoCell.textContent = resultado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+      markupCell.textContent = markup.toFixed(2)+'%';
+      lucroCell.textContent = lucroEfetivo.toFixed(2)+'%';
+      custoTotalCell.textContent = custoTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    }
+
+    function verificarInputs(){
+      if(parseFloat(monofInput.value)){
+        tribInput.disabled = true;
+        tribInput.value = 0;
+      } else {
+        tribInput.disabled = false;
+      }
+      if(parseFloat(tribInput.value)){
+        monofInput.disabled = true;
+        monofInput.value = 0;
+      } else {
+        monofInput.disabled = false;
+      }
+    }
+
+    inputVenda.addEventListener('input', calcular);
+    monofInput.addEventListener('input', () => { verificarInputs(); calcular(); });
+    tribInput.addEventListener('input', () => { verificarInputs(); calcular(); });
+    qtdInput.addEventListener('input', () => {
+      p.quantidade = parseFloat(qtdInput.value) || 0;
+      localStorage.setItem('produtosCalculados', JSON.stringify(dadosProdutos));
+      calcular();
+    });
+
+    document.getElementById('taxaCartao').addEventListener('input', () => {
+      if(document.getElementById('taxaCartao').value){
+        document.querySelectorAll('.valor-venda').forEach(el=>el.disabled=false);
+        calcular();
+      }
+    });
+  });
+</script>
+</body>
+</html>
