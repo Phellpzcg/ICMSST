@@ -104,6 +104,8 @@
     <span id="notaInfo">Nota Fiscal: -</span>
     <span id="totalImpostoInfo">Total Imposto: R$ 0,00</span>
   </div>
+  <!-- Alerta para operações interestaduais -->
+  <div id="interestadualInfo" style="color: red; text-align:center; font-weight:bold;"></div>
 
   <table id="productTable">
     <thead>
@@ -112,6 +114,8 @@
         <th>CFOP</th>
         <th>CST</th>
         <th>NCM</th>
+        <!-- Nova coluna para Quantidade -->
+        <th>Quantidade</th>
         <th>R$ Total Produto</th>
         <th>Outros</th>
         <th>IPI</th>
@@ -150,6 +154,7 @@
         const tbody = document.querySelector('#productTable tbody');
         tbody.innerHTML = '';
         let totalImpostoNota = 0;
+        let alertaInter = '';
 
         const fornecedor = xmlDoc.querySelector('emit > xNome')?.textContent || '-';
         const numeroNota = xmlDoc.querySelector('ide > nNF')?.textContent || '-';
@@ -190,18 +195,30 @@
           row.insertCell(1).textContent = cfop;
           row.insertCell(2).textContent = cst;
           row.insertCell(3).textContent = ncm;
-          row.insertCell(4).textContent = valorProd.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          row.insertCell(5).textContent = outros.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          row.insertCell(6).textContent = ipi.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          row.insertCell(7).textContent = desconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          // Exibe a quantidade com a unidade
+          row.insertCell(4).textContent = `${qtd} ${prod.getElementsByTagName('uCom')[0]?.textContent || ''}`;
+          row.insertCell(5).textContent = valorProd.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          row.insertCell(6).textContent = outros.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          row.insertCell(7).textContent = ipi.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          row.insertCell(8).textContent = desconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-          const categoriaCell = row.insertCell(8);
-          const impostoCell = row.insertCell(9);
-          const totalCell = row.insertCell(10);
-          const custoCell = row.insertCell(11);
-          const efetivoCell = row.insertCell(12);
+          const categoriaCell = row.insertCell(9);
+          const impostoCell = row.insertCell(10);
+          const totalCell = row.insertCell(11);
+          const custoCell = row.insertCell(12);
+          const efetivoCell = row.insertCell(13);
 
           const baseCalculo = valorProd + frete + ipi + outros - desconto;
+
+          // Caso o NCM não exista na planilha, exibe erro nas colunas calculadas
+          if (!categoria) {
+            categoriaCell.textContent = 'Erro';
+            impostoCell.textContent = 'Erro';
+            totalCell.textContent = 'Erro';
+            custoCell.textContent = 'Erro';
+            efetivoCell.textContent = 'Erro';
+            continue;
+          }
 
           if (CRT === '1') {
             categoriaCell.textContent = 'Fornecedor do Simples Nacional, verifique com a contabilidade o imposto da nota';
@@ -225,6 +242,9 @@
             const mvaAjustada = cfop.startsWith('6')
               ? (((1 + mvaOriginal) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1
               : mvaOriginal;
+            if (cfop.startsWith('6')) {
+              alertaInter = `⚠️ O fornecedor é de fora do estado. A alíquota foi ajustada com base na MVA Ajustada ${(mvaAjustada * 100).toFixed(2)}%`;
+            }
 
             let icmsST = ((baseCalculo * (1 + mvaAjustada)) * ALQ_FIXA) - vICMS;
             totalImpostoNota += icmsST;
@@ -262,6 +282,11 @@
               custoFinal = qtd > 0 ? total / qtd : 0;
               percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
+              if (cfop.startsWith('6')) {
+                alertaInter = `⚠️ O fornecedor é de fora do estado. A alíquota foi ajustada com base na MVA Ajustada ${(novaMvaAjustada * 100).toFixed(2)}%`;
+                document.getElementById('interestadualInfo').textContent = alertaInter;
+              }
+
               impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
               totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
               custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -271,6 +296,7 @@
         }
 
         document.getElementById('totalImpostoInfo').textContent = `Total Imposto: ${totalImpostoNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+        document.getElementById('interestadualInfo').textContent = alertaInter;
       };
       reader.readAsText(file);
     });
