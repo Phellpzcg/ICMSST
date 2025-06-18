@@ -12,7 +12,8 @@
     tr:nth-child(even) { background:#f2f2f2; }
     header { display:flex; justify-content:space-between; align-items:center; }
     button { padding:8px 16px; border:none; background:#f1c40f; cursor:pointer; border-radius:4px; font-weight:bold; }
-    input[disabled] { background:#eee; }
+    input.valor-venda { width:80px; padding:4px; border:1px solid #ccc; border-radius:4px; }
+    input.valor-venda[disabled] { background:#eee; }
   </style>
 </head>
 <body>
@@ -33,9 +34,13 @@
         <th>Descrição</th>
         <th>Quantidade</th>
         <th>Valor de Venda</th>
+        <th>Taxa Cartão</th>
+        <th>SN</th>
+        <th>LP</th>
         <th>Resultado</th>
         <th>% Markup</th>
         <th>% Lucro Efetivo</th>
+        <th>Custo Total Operação</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -44,39 +49,84 @@
   let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
   let ncmMap = {};
   fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
-    .then(r=>r.json())
-    .then(rows=>{ rows.forEach(r=>{ ncmMap[r.NCM||r.ncm] = r; }); });
+    .then(res => res.json())
+    .then(rows => {
+      console.log("Dados da planilha:", rows);
+      rows.forEach(r => {
+        const prefix = r.prefixo;
+        if (prefix) {
+          ncmMap[prefix] = {
+            descricao: r.descricao,
+            mva: parseFloat((r.mva || '0').replace(',', '.')) || 0,
+            margemSN: parseFloat((r.SN || r.sn || '0').replace(',', '.')) || 0,
+            margemLP: parseFloat((r.LP || r.lp || '0').replace(',', '.')) || 0
+          };
+        }
+      });
+      console.log(`Planilha de MVA carregada com ${Object.keys(ncmMap).length} registros`);
+    })
+    .catch(err => console.error("Erro ao carregar planilha de MVA:", err));
 
   const tbody = document.querySelector('#vendaTable tbody');
   dadosProdutos.forEach((p,i)=>{
     const row = tbody.insertRow();
     row.insertCell(0).textContent = p.descricao;
-    row.insertCell(1).textContent = p.quantidade;
+    const qtdCell = row.insertCell(1);
+    const qtdInput = document.createElement('input');
+    qtdInput.type = 'number';
+    qtdInput.value = p.quantidade;
+    qtdInput.style.width = '60px';
+    qtdCell.appendChild(qtdInput);
     const valorVendaCell = row.insertCell(2);
     const input = document.createElement('input');
     input.type = 'number';
     input.className = 'valor-venda';
     input.disabled = true;
     valorVendaCell.appendChild(input);
-    const resultadoCell = row.insertCell(3);
-    const markupCell = row.insertCell(4);
-    const lucroCell = row.insertCell(5);
+    const taxaCell = row.insertCell(3);
+    const snCell = row.insertCell(4);
+    const lpCell = row.insertCell(5);
+    const resultadoCell = row.insertCell(6);
+    const markupCell = row.insertCell(7);
+    const lucroCell = row.insertCell(8);
+    const custoTotalCell = row.insertCell(9);
 
     function calcular(){
       const valorVenda = parseFloat(input.value)||0;
       const taxa = parseFloat(document.getElementById('taxaCartao').value)||0;
       const regime = document.getElementById('regime').value;
-      const margem = regime==='SN'? (p.margemSN||0) : regime==='LP'? (p.margemLP||0) : 0;
-      const base = p.custoOriginal + p.icmsSt;
-      const resultado = base * (1 + taxa/100 + margem/100);
-      const markup = base? ((valorVenda/base) - 1) * 100 : 0;
+      const margemSN = p.margemSN||0;
+      const margemLP = p.margemLP||0;
+      const qtdAtual = parseFloat(qtdInput.value) || 0;
+      const baseUnit = qtdAtual ? (p.custoOriginal + p.icmsSt) / qtdAtual : 0;
+
+      const valorTaxa = valorVenda * (taxa/100);
+      const valorSN = valorVenda * (margemSN/100);
+      const valorLP = valorVenda * (margemLP/100);
+      const snAplicado = regime === 'SN' ? valorSN : 0;
+      const lpAplicado = regime === 'LP' ? valorLP : 0;
+      const icmsUnit = qtdAtual ? p.icmsSt / qtdAtual : 0;
+
+      const custoTotal = icmsUnit + valorTaxa + snAplicado + lpAplicado;
+      const resultado = baseUnit + valorTaxa + snAplicado + lpAplicado;
+      const markup = baseUnit? ((valorVenda/baseUnit) - 1) * 100 : 0;
       const lucroEfetivo = valorVenda? ((valorVenda - resultado)/valorVenda)*100 : 0;
+
+      taxaCell.textContent = valorTaxa.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+      snCell.textContent = snAplicado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+      lpCell.textContent = lpAplicado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
       resultadoCell.textContent = resultado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
       markupCell.textContent = markup.toFixed(2)+'%';
       lucroCell.textContent = lucroEfetivo.toFixed(2)+'%';
+      custoTotalCell.textContent = custoTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
     }
 
     input.addEventListener('input', calcular);
+    qtdInput.addEventListener('input', () => {
+      p.quantidade = parseFloat(qtdInput.value) || 0;
+      localStorage.setItem('produtosCalculados', JSON.stringify(dadosProdutos));
+      calcular();
+    });
     document.getElementById('taxaCartao').addEventListener('input', habilitar);
     document.getElementById('regime').addEventListener('change', habilitar);
 

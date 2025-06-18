@@ -94,6 +94,7 @@
   <div class="upload-section">
     <input type="file" id="xmlFileInput" accept=".xml">
     <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
+    <button onclick="window.location.href='analise-de-venda.html'">Acessar Análise de Venda</button>
   </div>
 
   <div class="info-box">
@@ -127,7 +128,11 @@
 
   <footer>
     <p>Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553</p>
-    <p style="margin-top:10px; font-size:12px;">Art. 294 do ICMS/BA - Margens e alíquotas variam conforme a categoria do produto. Consulte a legislação para maiores detalhes.</p>
+    <p style="margin-top:10px; font-size:12px;">
+      <strong>Art. 294 do ICMS/BA:</strong> As farmácias, drogarias e casas de produtos naturais, bem como suas centrais de distribuição, farão o recolhimento do ICMS por antecipação nas aquisições de produtos não alcançados pela substituição tributária. Nesses casos, devem utilizar margens de valor agregado (MVA) conforme o tipo de mercadoria nas operações internas, ajustando a MVA nas interestaduais, nos termos do § 14 do art. 289.
+      <br><br>
+      <strong>Exemplos de MVA:</strong> Gêneros alimentícios: 50%, Bebidas alcoólicas: 30%, Higiene pessoal e cosméticos: 60%, Material de limpeza: 40%, Artigos de armarinho: 90%, Eletrodomésticos: 20%, Móveis: 50%, Outras mercadorias: 40%.
+    </p>
   </footer>
 
   <script>
@@ -138,18 +143,21 @@
     fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
       .then(res => res.json())
       .then(rows => {
+        console.log("Dados da planilha:", rows);
         rows.forEach(r => {
-          const prefix = r.NCM || r.ncm;
+          const prefix = r.prefixo;
           if (prefix) {
             ncmMvaMap[prefix] = {
-              descricao: r.Descricao || r.descricao,
-              mva: parseFloat(r.MVA || r.mva) || 0,
-              margemSN: parseFloat(r.SN || r.sn || 0),
-              margemLP: parseFloat(r.LP || r.lp || 0)
+              descricao: r.descricao,
+              mva: parseFloat((r.mva || '0').replace(',', '.')) || 0,
+              margemSN: parseFloat((r.SN || r.sn || '0').replace(',', '.')) || 0,
+              margemLP: parseFloat((r.LP || r.lp || '0').replace(',', '.')) || 0
             };
           }
         });
-      });
+        console.log(`Planilha de MVA carregada com ${Object.keys(ncmMvaMap).length} registros`);
+      })
+      .catch(err => console.error("Erro ao carregar planilha de MVA:", err));
 
     document.getElementById('xmlFileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];
@@ -204,7 +212,12 @@
           row.insertCell(1).textContent = cfop;
           row.insertCell(2).textContent = cst;
           row.insertCell(3).textContent = ncm;
-          row.insertCell(4).textContent = qtd;
+          const qtdCell = row.insertCell(4);
+          const qtdInput = document.createElement('input');
+          qtdInput.type = 'number';
+          qtdInput.value = qtd;
+          qtdInput.style.width = '60px';
+          qtdCell.appendChild(qtdInput);
           row.insertCell(5).textContent = valorProd.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
           row.insertCell(6).textContent = outros.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
           row.insertCell(7).textContent = ipi.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -252,29 +265,36 @@
               totalImpostoNota += icmsST;
 
               let total = baseCalculo + icmsST;
-              let custoFinal = qtd > 0 ? total / qtd : 0;
+              const calcularCusto = () => {
+                const qAtual = parseFloat(qtdInput.value) || 0;
+                let custoFinal = qAtual > 0 ? total / qAtual : 0;
+                custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                produtosCalculados[i] = {
+                  descricao: nome,
+                  quantidade: qAtual,
+                  custoOriginal: baseCalculo,
+                  icmsSt: icmsST,
+                  custoUnitario: custoFinal,
+                  margemSN: categoria.margemSN,
+                  margemLP: categoria.margemLP
+                };
+                localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
+              };
               let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
               categoriaCell.textContent = `${categoria.descricao} (${(mvaAjustada * 100).toFixed(2)}%)`;
               impostoCell.textContent = icmsST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
               impostoCell.className = 'highlight-imposto';
               totalCell.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-              custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+              calcularCusto();
               custoCell.className = 'highlight-custo';
               efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
-              produtosCalculados.push({
-                descricao: nome,
-                quantidade: qtd,
-                custoOriginal: baseCalculo,
-                icmsSt: icmsST,
-                margemSN: categoria.margemSN,
-                margemLP: categoria.margemLP
-              });
               if (cfop.startsWith('6')) {
                 document.getElementById('alerta').textContent = `⚠️ O fornecedor é de fora do estado. A alíquota foi ajustada com base na MVA Ajustada: ${(mvaAjustada * 100).toFixed(2)}%`;
               } else {
                 document.getElementById('alerta').textContent = '';
               }
+              qtdInput.addEventListener('input', calcularCusto);
             }
           }
         }
