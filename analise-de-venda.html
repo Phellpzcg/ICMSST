@@ -43,9 +43,16 @@
 <script>
   let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
   let ncmMap = {};
-  fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/P%C3%A1gina1')
+  const SHEET_ID = '1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00';
+  const SHEET_NAME = 'Página1';
+  const SHEET_URL = `https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(SHEET_NAME)}`;
+  fetch(SHEET_URL)
     .then(r=>r.json())
-    .then(rows=>{ rows.forEach(r=>{ ncmMap[r.NCM||r.ncm] = r; }); });
+    .then(rows=>{
+      rows.forEach(r=>{ ncmMap[r.NCM||r.ncm] = r; });
+      console.log('Planilha de MVA carregada na análise de venda');
+    })
+    .catch(err=>console.error('Erro ao carregar planilha na análise de venda', err));
 
   const tbody = document.querySelector('#vendaTable tbody');
   dadosProdutos.forEach((p,i)=>{

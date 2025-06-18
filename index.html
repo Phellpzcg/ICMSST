@@ -136,7 +136,11 @@
     let produtosCalculados = [];
     const ALQ_FIXA = 0.205;
 
-    fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/P%C3%A1gina1')
+    const SHEET_ID = '1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00';
+    const SHEET_NAME = 'Página1';
+    const SHEET_URL = `https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(SHEET_NAME)}`;
+
+    fetch(SHEET_URL)
       .then(res => res.json())
       .then(rows => {
         rows.forEach(r => {
@@ -150,7 +154,9 @@
             };
           }
         });
-      });
+        console.log('Planilha de MVA carregada com', Object.keys(ncmMvaMap).length, 'registros');
+      })
+      .catch(err => console.error('Erro ao carregar planilha de MVA', err));
 
     document.getElementById('xmlFileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];
