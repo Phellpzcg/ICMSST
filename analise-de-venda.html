@@ -43,7 +43,7 @@
 <script>
   let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
   let ncmMap = {};
-  fetch('https://docs.google.com/spreadsheets/d/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/edit?usp=sharing')
+  fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
     .then(r=>r.json())
     .then(rows=>{ rows.forEach(r=>{ ncmMap[r.NCM||r.ncm] = r; }); });
 
