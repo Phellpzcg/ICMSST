@@ -94,6 +94,7 @@
   <div class="upload-section">
     <input type="file" id="xmlFileInput" accept=".xml">
     <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
+    <button onclick="window.location.href='analise-de-venda.html'">Análise de Venda</button>
   </div>
 
   <div class="info-box">
@@ -127,7 +128,7 @@
 
   <footer>
     <p>Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553</p>
-    <p style="margin-top:10px; font-size:12px;">Art. 294 do ICMS/BA - Margens e alíquotas variam conforme a categoria do produto. Consulte a legislação para maiores detalhes.</p>
+    <p style="margin-top:10px; font-size:12px;">Conforme Art. 294 e §14 do Art. 289 do RICMS-BA, as margens e alíquotas de ICMS variam por produto. Consulte a legislação para mais detalhes.</p>
   </footer>
 
   <script>
@@ -135,7 +136,7 @@
     let produtosCalculados = [];
     const ALQ_FIXA = 0.205;
 
-    fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/PÃ¡gina1')
+    fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/P%C3%A1gina1')
       .then(res => res.json())
       .then(rows => {
         rows.forEach(r => {
@@ -143,9 +144,9 @@
           if (prefix) {
             ncmMvaMap[prefix] = {
               descricao: r.Descricao || r.descricao,
-              mva: parseFloat(r.MVA || r.mva) || 0,
-              margemSN: parseFloat(r.SN || r.sn || 0),
-              margemLP: parseFloat(r.LP || r.lp || 0)
+              mva: parseFloat((r.MVA || r.mva || '0').replace(',', '.')) || 0,
+              margemSN: parseFloat((r.SN || r.sn || '0').replace(',', '.')) || 0,
+              margemLP: parseFloat((r.LP || r.lp || '0').replace(',', '.')) || 0
             };
           }
         });
@@ -164,6 +165,7 @@
         tbody.innerHTML = '';
         produtosCalculados = [];
         let totalImpostoNota = 0;
+        let mvaAlert = null;
 
         const fornecedor = xmlDoc.querySelector('emit > xNome')?.textContent || '-';
         const numeroNota = xmlDoc.querySelector('ide > nNF')?.textContent || '-';
@@ -270,16 +272,15 @@
                 margemSN: categoria.margemSN,
                 margemLP: categoria.margemLP
               });
-              if (cfop.startsWith('6')) {
-                document.getElementById('alerta').textContent = `⚠️ O fornecedor é de fora do estado. A alíquota foi ajustada com base na MVA Ajustada: ${(mvaAjustada * 100).toFixed(2)}%`;
-              } else {
-                document.getElementById('alerta').textContent = '';
+              if (cfop.startsWith('6') && mvaAlert === null) {
+                mvaAlert = (mvaAjustada * 100).toFixed(2);
               }
             }
           }
         }
 
         document.getElementById('totalImpostoInfo').textContent = `Total Imposto: ${totalImpostoNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+        document.getElementById('alerta').textContent = mvaAlert ? `⚠️ O fornecedor é de fora do estado. A alíquota foi ajustada com base na MVA Ajustada: ${mvaAlert}%` : '';
         localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
       };
       reader.readAsText(file);
