@@ -60,9 +60,9 @@ index 64f3bc247d4dbc974c99ff2de968ab579d9774d6..b31c00baaedf92b3985b1dd6e323e85f
      .then(rows => {
        console.log("Dados da planilha:", rows);
        rows.forEach(r => {
-         const prefix = r.prefixo;
-         if (prefix) {
-           ncmMap[prefix] = {
+         const codigo = r.prefixo;
+         if (codigo) {
+           ncmMap[codigo] = {
              descricao: r.descricao,
              mva: parseFloat((r.mva || '0').replace(',', '.')) || 0,
              margemSN: parseFloat((r.SN || r.sn || '0').replace(',', '.')) || 0,
