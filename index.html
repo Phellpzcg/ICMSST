@@ -145,13 +145,13 @@
       .then(rows => {
         console.log("Dados da planilha:", rows);
         rows.forEach(r => {
-          const codigo = String(r.ncm || r.NCM || '').replace(/\D/g,'');
+          const codigo = String(r.prefixo || '').replace(/\D/g, '');
           if (codigo) {
             ncmMvaMap[codigo] = {
               descricao: r.descricao,
-              mva: parseFloat((r.mva || '0').replace(',', '.')) || 0,
-              margemSN: parseFloat((r.SN || r.sn || '0').replace(',', '.')) || 0,
-              margemLP: parseFloat((r.LP || r.lp || '0').replace(',', '.')) || 0
+              mva: parseFloat(String(r.mva || '0').replace(',', '.')) || 0,
+              margemSN: parseFloat(String(r.sn || '0').replace(',', '.')) || 0,
+              margemLP: parseFloat(String(r.lp || '0').replace(',', '.')) || 0
             };
           }
         });

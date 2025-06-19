@@ -53,11 +53,11 @@
     .then(rows => {
       console.log("Dados da planilha:", rows);
       rows.forEach(r => {
-        const prefix = r.prefixo;
+        const prefix = String(r.prefixo || '').replace(/\D/g, '');
         if (prefix) {
           ncmMap[prefix] = {
             descricao: r.descricao,
-            mva: parseFloat((r.mva || '0').replace(',', '.')) || 0,
+            mva: parseFloat(String(r.mva || '0').replace(',', '.')) || 0,
           };
         }
       });
