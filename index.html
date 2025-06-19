@@ -145,9 +145,9 @@
       .then(rows => {
         console.log("Dados da planilha:", rows);
         rows.forEach(r => {
-          const prefix = r.prefixo;
-          if (prefix) {
-            ncmMvaMap[prefix] = {
+          const codigo = String(r.ncm || r.NCM || '').replace(/\D/g,'');
+          if (codigo) {
+            ncmMvaMap[codigo] = {
               descricao: r.descricao,
               mva: parseFloat((r.mva || '0').replace(',', '.')) || 0,
               margemSN: parseFloat((r.SN || r.sn || '0').replace(',', '.')) || 0,
@@ -187,13 +187,9 @@
           const valorProd = parseFloat(prod.getElementsByTagName('vProd')[0]?.textContent || '0');
           const frete = parseFloat(prod.getElementsByTagName('vFrete')[0]?.textContent || '0');
           const outros = parseFloat(prod.getElementsByTagName('vOutro')[0]?.textContent || '0');
-          const ipi = parseFloat(prod.getElementsByTagName('vIPI')[0]?.textContent || '0');
-          const desconto = parseFloat(prod.getElementsByTagName('vDesc')[0]?.textContent || '0');
-          const cfop = prod.getElementsByTagName('CFOP')[0]?.textContent || '';
           const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
-          const prefixo = ncm.substring(0, 4);
-          const categoria = ncmMvaMap[prefixo];
-
+          const categoria = ncmMvaMap[ncm];
+          const cfop = prod.getElementsByTagName('CFOP')[0]?.textContent || '';
           const impostoTag = prod.parentNode.querySelector('ICMS, ICMSSN101, ICMSSN102');
           let cst = '000';
           let vICMS = 0;
