@@ -182,6 +182,10 @@
 
         for (let i = 0; i < products.length; i++) {
           const prod = products[i];
+          const impostoTag = prod.parentNode.querySelector('ICMS, ICMSSN101, ICMSSN102');
+          let cst = '';
+          let vICMS = 0;
+          let alqInter = 0;
           const nome = prod.getElementsByTagName('xProd')[0]?.textContent || 'Produto';
           const qtd = parseFloat(prod.getElementsByTagName('qCom')[0]?.textContent || '0');
           const valorProd = parseFloat(prod.getElementsByTagName('vProd')[0]?.textContent || '0');
