@@ -138,6 +138,7 @@
   <script>
     let ncmMvaMap = {};
     let produtosCalculados = [];
+    let ncmsNaoEncontrados = new Set();
     const ALQ_FIXA = 0.205;
 
     fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
@@ -253,10 +254,7 @@
               totalCell.textContent = 'Erro';
               custoCell.textContent = 'Erro';
               efetivoCell.textContent = 'Erro';
-              document.getElementById('alerta').textContent =
-                `⚠️ NCM ${ncm} não encontrado na planilha. ` +
-                'Não será possível gerar o cálculo. ' +
-                'Solicite à contabilidade o cadastro dos NCMs faltantes para prosseguir.';
+              ncmsNaoEncontrados.add(ncm);
             } else {
               const mvaOriginal = categoria.mva || 0;
               const mvaAjustada = cfop.startsWith('6')
@@ -299,6 +297,18 @@
               qtdInput.addEventListener('input', calcularCusto);
             }
           }
+        }
+
+        if (ncmsNaoEncontrados.size > 0) {
+          const lista = Array.from(ncmsNaoEncontrados).join(', ');
+          document.getElementById('alerta').textContent =
+            `⚠️ NCMs não encontrados na planilha: ${lista}. ` +
+            'Solicite à contabilidade o cadastro destes códigos para calcular corretamente.';
+          alert(
+            'Os seguintes NCMs não foram encontrados na planilha de MVA:\n' +
+            lista +
+            '\nSolicite à contabilidade o cadastro desses NCMs para prosseguir.'
+          );
         }
 
         document.getElementById('totalImpostoInfo').textContent = `Total Imposto: ${totalImpostoNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
