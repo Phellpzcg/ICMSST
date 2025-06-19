@@ -138,6 +138,7 @@
   <script>
     let ncmMvaMap = {};
     let produtosCalculados = [];
+    let ncmsNaoEncontrados = new Set();
     const ALQ_FIXA = 0.205;
 
     fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
@@ -246,6 +247,23 @@
             custoCell.textContent = baseCalculo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             custoCell.className = 'highlight-custo';
             efetivoCell.textContent = '-';
+            const calcularCusto = () => {
+              const qAtual = parseFloat(qtdInput.value) || 0;
+              const custoFinal = qAtual > 0 ? baseCalculo / qAtual : 0;
+              custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+              produtosCalculados[i] = {
+                descricao: nome,
+                quantidade: qAtual,
+                custoOriginal: baseCalculo,
+                icmsSt: 0,
+                custoUnitario: custoFinal,
+                margemSN: categoria ? categoria.margemSN : 0,
+                margemLP: categoria ? categoria.margemLP : 0
+              };
+              localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
+            };
+            calcularCusto();
+            qtdInput.addEventListener('input', calcularCusto);
           } else {
             if (!categoria) {
               categoriaCell.textContent = 'Erro';
@@ -253,6 +271,7 @@
               totalCell.textContent = 'Erro';
               custoCell.textContent = 'Erro';
               efetivoCell.textContent = 'Erro';
+              ncmsNaoEncontrados.add(ncm);
             } else {
               const mvaOriginal = categoria.mva || 0;
               const mvaAjustada = cfop.startsWith('6')
@@ -295,6 +314,18 @@
               qtdInput.addEventListener('input', calcularCusto);
             }
           }
+        }
+
+        if (ncmsNaoEncontrados.size > 0) {
+          const lista = Array.from(ncmsNaoEncontrados).join(', ');
+          document.getElementById('alerta').textContent =
+            `⚠️ NCMs não encontrados na planilha: ${lista}. ` +
+            'Solicite à contabilidade o cadastro destes códigos para calcular corretamente.';
+          alert(
+            'Os seguintes NCMs não foram encontrados na planilha de MVA:\n' +
+            lista +
+            '\nSolicite à contabilidade o cadastro desses NCMs para prosseguir.'
+          );
         }
 
         document.getElementById('totalImpostoInfo').textContent = `Total Imposto: ${totalImpostoNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;

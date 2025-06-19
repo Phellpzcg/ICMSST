@@ -47,6 +47,11 @@
   </footer>
 <script>
   let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
+  dadosProdutos = dadosProdutos.filter(p => {
+    const valido = p && p.descricao;
+    if (!valido) console.warn('Produto inválido no localStorage:', p);
+    return valido;
+  });
   let ncmMap = {};
   fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
     .then(res => res.json())
