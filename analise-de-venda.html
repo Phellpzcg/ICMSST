@@ -53,7 +53,15 @@ index 64f3bc247d4dbc974c99ff2de968ab579d9774d6..b31c00baaedf92b3985b1dd6e323e85f
      <tbody></tbody>
    </table>
  <script>
-   let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
+  let dadosProdutos = JSON.parse(localStorage.getItem('produtosCalculados') || '[]');
+  dadosProdutos = dadosProdutos.filter(item => {
+    const valido = item && item.descricao;
+    if(!valido) {
+      console.warn('Produto inválido ignorado', item);
+    }
+    return valido;
+  });
+  localStorage.setItem('produtosCalculados', JSON.stringify(dadosProdutos));
    let ncmMap = {};
    fetch('https://opensheet.vercel.app/1TKysjAxeh72sSwAsa7qutZ1SUUvpazAgCNNlsMx-H00/Página1')
      .then(res => res.json())
@@ -74,9 +82,13 @@ index 64f3bc247d4dbc974c99ff2de968ab579d9774d6..b31c00baaedf92b3985b1dd6e323e85f
      })
      .catch(err => console.error("Erro ao carregar planilha de MVA:", err));
  
-   const tbody = document.querySelector('#vendaTable tbody');
-   dadosProdutos.forEach((p,i)=>{
-     const row = tbody.insertRow();
+  const tbody = document.querySelector('#vendaTable tbody');
+  dadosProdutos.forEach((p,i)=>{
+    if(!p || !p.descricao){
+      console.warn('Produto inválido ignorado', p);
+      return;
+    }
+    const row = tbody.insertRow();
      row.insertCell(0).textContent = p.descricao;
      const qtdCell = row.insertCell(1);
      const qtdInput = document.createElement('input');

@@ -171,6 +171,7 @@
         const tbody = document.querySelector('#productTable tbody');
         tbody.innerHTML = '';
         produtosCalculados = [];
+        localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
         let totalImpostoNota = 0;
 
         const fornecedor = xmlDoc.querySelector('emit > xNome')?.textContent || '-';
@@ -265,19 +266,24 @@
               totalImpostoNota += icmsST;
 
               let total = baseCalculo + icmsST;
+              const produtoObj = {
+                descricao: nome,
+                quantidade: qtd,
+                custoOriginal: baseCalculo,
+                icmsSt: icmsST,
+                custoUnitario: 0,
+                margemSN: categoria.margemSN,
+                margemLP: categoria.margemLP
+              };
+              if(produtoObj.descricao && produtoObj.quantidade > 0){
+                produtosCalculados.push(produtoObj);
+              }
               const calcularCusto = () => {
                 const qAtual = parseFloat(qtdInput.value) || 0;
                 let custoFinal = qAtual > 0 ? total / qAtual : 0;
                 custoCell.textContent = custoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                produtosCalculados[i] = {
-                  descricao: nome,
-                  quantidade: qAtual,
-                  custoOriginal: baseCalculo,
-                  icmsSt: icmsST,
-                  custoUnitario: custoFinal,
-                  margemSN: categoria.margemSN,
-                  margemLP: categoria.margemLP
-                };
+                produtoObj.quantidade = qAtual;
+                produtoObj.custoUnitario = custoFinal;
                 localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
               };
               let percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
