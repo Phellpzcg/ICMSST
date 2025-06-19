@@ -64,6 +64,7 @@
 
   const tbody = document.querySelector('#vendaTable tbody');
   dadosProdutos.forEach((p,i)=>{
+    if(!p || !p.descricao) return; // ignora itens inválidos
     const row = tbody.insertRow();
     row.insertCell(0).textContent = p.descricao;
     const qtdCell = row.insertCell(1);
