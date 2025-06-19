@@ -145,9 +145,9 @@
       .then(rows => {
         console.log("Dados da planilha:", rows);
         rows.forEach(r => {
-          const prefix = r.prefixo;
-          if (prefix) {
-            ncmMvaMap[prefix] = {
+          const codigo = r.ncm;
+          if (codigo) {
+            ncmMvaMap[codigo] = {
               descricao: r.descricao,
               mva: parseFloat((r.mva || '0').replace(',', '.')) || 0,
               margemSN: parseFloat((r.SN || r.sn || '0').replace(',', '.')) || 0,
@@ -191,13 +191,7 @@
           const desconto = parseFloat(prod.getElementsByTagName('vDesc')[0]?.textContent || '0');
           const cfop = prod.getElementsByTagName('CFOP')[0]?.textContent || '';
           const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
-          const prefixo = ncm.substring(0, 4);
-          const categoria = ncmMvaMap[prefixo];
-
-          const impostoTag = prod.parentNode.querySelector('ICMS, ICMSSN101, ICMSSN102');
-          let cst = '000';
-          let vICMS = 0;
-          let alqInter = 0.12;
+          const categoria = ncmMvaMap[ncm];
           if (impostoTag) {
             const cstTag = impostoTag.querySelector('CST') || impostoTag.querySelector('CSOSN');
             if (cstTag) cst = cstTag.textContent.trim();
