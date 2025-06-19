@@ -253,6 +253,10 @@
               totalCell.textContent = 'Erro';
               custoCell.textContent = 'Erro';
               efetivoCell.textContent = 'Erro';
+              document.getElementById('alerta').textContent =
+                `⚠️ NCM ${ncm} não encontrado na planilha. ` +
+                'Não será possível gerar o cálculo. ' +
+                'Solicite à contabilidade o cadastro dos NCMs faltantes para prosseguir.';
             } else {
               const mvaOriginal = categoria.mva || 0;
               const mvaAjustada = cfop.startsWith('6')
