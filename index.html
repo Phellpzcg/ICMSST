@@ -5,23 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Importar XML - ICMS ST</title>
   <style>
+    * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background-color: #f9f9f9; color: #333; padding: 0; margin: 0; }
     header { background-color: #000; color: #f1c40f; display: flex; align-items: center; padding: 10px 20px; }
     header img { height: 50px; margin-right: 20px; }
     header h1 { font-size: 1.5rem; margin: 0; }
     .upload-section { text-align: center; margin: 20px 0; }
-    button { padding: 10px 20px; background-color: #f1c40f; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin: 0 5px; }
+    button { padding: 10px 20px; background-color: #f1c40f; color: #000; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin: 0 5px; }
+    button:hover { background-color: #d4a90c; }
     input[type="file"] { display: none; }
     #statusPlanilha { text-align: center; font-size: 13px; margin-bottom: 10px; color: #555; }
     #statusPlanilha.erro { color: #d9534f; font-weight: bold; }
     #statusPlanilha.ok { color: #2e7d32; }
-    .info-box { display: flex; justify-content: space-around; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; margin: 20px; font-weight: bold; }
-    #alerta { text-align: center; color: #d9534f; font-weight: bold; }
-    .tabela-wrapper { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; margin: 0 0 30px 0; font-size: 12px; }
+    .info-box { display: flex; justify-content: space-around; flex-wrap: wrap; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; margin: 20px; font-weight: bold; }
+    #alerta { text-align: center; color: #d9534f; font-weight: bold; margin: 0 20px 10px; }
+    #alerta div { margin-bottom: 4px; }
+    .tabela-wrapper { overflow-x: auto; margin: 0 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 0 0 30px 0; font-size: 12px; min-width: 1100px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background-color: #333; color: #f1c40f; position: sticky; top: 0; z-index: 1; }
-    tr:nth-child(even) { background-color: #f2f2f2; }
+    tr:nth-child(even) td { background-color: #f2f2f2; }
     .highlight-imposto { background-color: #ffdddd; font-weight: bold; }
     .highlight-custo { background-color: #ddffdd; font-weight: bold; }
     footer { background-color: #333; color: #fff; text-align: center; padding: 10px; }
@@ -36,7 +39,7 @@
   <div class="upload-section">
     <input type="file" id="xmlFileInput" accept=".xml">
     <button id="btnSelecionar">Selecionar XML</button>
-    <button onclick="window.location.href='analise-de-venda.html'">Acessar Análise de Venda</button>
+    <button id="btnAnalise">Acessar Análise de Venda</button>
   </div>
 
   <div id="statusPlanilha">Carregando planilha de MVA...</div>
@@ -46,6 +49,7 @@
     <span id="notaInfo">Nota Fiscal: -</span>
     <span id="totalImpostoInfo">Total Imposto: R$ 0,00</span>
   </div>
+
   <div id="alerta"></div>
 
   <div class="tabela-wrapper">
@@ -89,19 +93,20 @@
     let ncmMvaMap = {};
     let produtosCalculados = [];
 
-    const statusEl = document.getElementById('statusPlanilha');
-    const alertaEl = document.getElementById('alerta');
-    const inputXml = document.getElementById('xmlFileInput');
+    const $ = id => document.getElementById(id);
+    const statusEl = $('statusPlanilha');
+    const alertaEl = $('alerta');
+    const inputXml = $('xmlFileInput');
 
-    document.getElementById('btnSelecionar').addEventListener('click', () => inputXml.click());
+    $('btnSelecionar').addEventListener('click', () => inputXml.click());
+    $('btnAnalise').addEventListener('click', () => { window.location.href = 'analise-de-venda.html'; });
 
     const brl = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     // Salva para a página Análise de Venda. Falha em silêncio se o armazenamento estiver bloqueado.
     function salvarProdutos() {
-      const lista = produtosCalculados.filter(Boolean);
       try {
-        localStorage.setItem('produtosCalculados', JSON.stringify(lista));
+        localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados.filter(Boolean)));
       } catch (e) {}
     }
 
@@ -112,12 +117,16 @@
         .replace(/[^a-z0-9]/g, '');
     }
 
+    // Aceita número, "50%", "0,5" ou "0.5"
     function parseNumero(v) {
       if (typeof v === 'number') return v;
-      return parseFloat(String(v || '0').replace(',', '.')) || 0;
+      const s = String(v || '').trim();
+      const pct = s.includes('%');
+      const n = parseFloat(s.replace('%', '').replace(',', '.')) || 0;
+      return pct ? n / 100 : n;
     }
 
-    // Lê a planilha pela API de visualização do Google (funciona com planilhas "Qualquer pessoa com o link")
+    // Leitura direta pela API gviz (funciona com planilha "Qualquer pessoa com o link")
     async function lerPlanilhaGoogle() {
       const url = `https://docs.google.com/spreadsheets/d/${PLANILHA_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(ABA)}`;
       const texto = await (await fetch(url)).text();
@@ -126,7 +135,6 @@
       let labels = json.table.cols.map(c => c.label);
       let linhas = json.table.rows;
 
-      // Se o Google não detectou o cabeçalho, a primeira linha é o cabeçalho
       if (labels.every(l => !l) && linhas.length) {
         labels = linhas.shift().c.map(c => (c && c.v) || '');
       }
@@ -135,14 +143,14 @@
       return linhas.map(r => {
         const obj = {};
         chaves.forEach((k, i) => {
-          const c = r.c[i];
+          const c = (r.c || [])[i];
           obj[k] = c ? (c.v ?? c.f ?? '') : '';
         });
         return obj;
       });
     }
 
-    // Plano B caso o gviz falhe
+    // Plano B caso a leitura direta falhe
     async function lerPlanilhaFallback() {
       const data = await (await fetch(`https://opensheet.vercel.app/${PLANILHA_ID}/${encodeURIComponent(ABA)}`)).json();
       return data.map(linha => {
@@ -157,7 +165,7 @@
       try {
         rows = await lerPlanilhaGoogle();
       } catch (e) {
-        console.warn('Falha na leitura direta, tentando fallback:', e);
+        console.warn('Leitura direta falhou, usando fallback:', e);
         rows = await lerPlanilhaFallback();
       }
 
@@ -176,7 +184,7 @@
       return mapa;
     }
 
-    // Busca pelo prefixo mais específico: NCM completo, depois 6, 4 e 2 dígitos
+    // Prefixo mais específico: NCM completo, depois 6, 4 e 2 dígitos
     function buscarCategoria(ncm) {
       const digitos = String(ncm).replace(/\D/g, '');
       for (const n of [8, 6, 4, 2]) {
@@ -186,7 +194,7 @@
       return null;
     }
 
-    // O processamento do XML aguarda esta promise, evitando corrida com o carregamento
+    // O processamento do XML aguarda esta promise
     const planilhaPronta = carregarPlanilha()
       .then(mapa => {
         ncmMvaMap = mapa;
@@ -199,65 +207,92 @@
         statusEl.className = 'erro';
       });
 
+    // Lê o texto de uma tag dentro de um elemento
+    function txt(el, tag) {
+      const n = el.getElementsByTagName(tag)[0];
+      return n ? n.textContent.trim() : '';
+    }
+    function num(el, tag) {
+      return parseFloat(txt(el, tag)) || 0;
+    }
+
+    function mostrarAvisos(avisos) {
+      alertaEl.innerHTML = '';
+      avisos.forEach(msg => {
+        const d = document.createElement('div');
+        d.textContent = msg;
+        alertaEl.appendChild(d);
+      });
+    }
+
     inputXml.addEventListener('change', async function (event) {
       const file = event.target.files[0];
       if (!file) return;
 
       await planilhaPronta;
 
+      if (!Object.keys(ncmMvaMap).length) {
+        mostrarAvisos(['Planilha de MVA não carregada. Não é possível calcular o ICMS ST.']);
+        return;
+      }
+
       const texto = await file.text();
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(texto, 'text/xml');
-      const products = xmlDoc.getElementsByTagName('prod');
+      const xmlDoc = new DOMParser().parseFromString(texto, 'text/xml');
+      if (xmlDoc.getElementsByTagName('parsererror').length) {
+        mostrarAvisos(['Arquivo XML inválido.']);
+        return;
+      }
+
       const tbody = document.querySelector('#productTable tbody');
       tbody.innerHTML = '';
       produtosCalculados = [];
-      alertaEl.textContent = '';
+      const avisos = new Set();
       let totalImpostoNota = 0;
 
       const fornecedor = xmlDoc.querySelector('emit > xNome')?.textContent || '-';
       const numeroNota = xmlDoc.querySelector('ide > nNF')?.textContent || '-';
-      document.getElementById('fornecedorInfo').textContent = `Fornecedor: ${fornecedor}`;
-      document.getElementById('notaInfo').textContent = `Nota Fiscal: ${numeroNota}`;
+      $('fornecedorInfo').textContent = `Fornecedor: ${fornecedor}`;
+      $('notaInfo').textContent = `Nota Fiscal: ${numeroNota}`;
 
-      const CRT = xmlDoc.getElementsByTagName('CRT')[0]?.textContent || '';
+      const CRT = txt(xmlDoc, 'CRT');
+      const prods = xmlDoc.getElementsByTagName('prod');
 
-      for (let i = 0; i < products.length; i++) {
-        const prod = products[i];
-        const nome = prod.getElementsByTagName('xProd')[0]?.textContent || 'Produto';
-        const qtd = parseFloat(prod.getElementsByTagName('qCom')[0]?.textContent || '0');
-        const valorProd = parseFloat(prod.getElementsByTagName('vProd')[0]?.textContent || '0');
-        const frete = parseFloat(prod.getElementsByTagName('vFrete')[0]?.textContent || '0');
-        const outros = parseFloat(prod.getElementsByTagName('vOutro')[0]?.textContent || '0');
-        const ipi = parseFloat(prod.getElementsByTagName('vIPI')[0]?.textContent || '0');
-        const desconto = parseFloat(prod.getElementsByTagName('vDesc')[0]?.textContent || '0');
-        const ncm = prod.getElementsByTagName('NCM')[0]?.textContent || '00000000';
+      for (let i = 0; i < prods.length; i++) {
+        const prod = prods[i];
+        const det = prod.parentNode;
+
+        const nome = txt(prod, 'xProd') || 'Produto';
+        const qtd = num(prod, 'qCom');
+        const valorProd = num(prod, 'vProd');
+        const frete = num(prod, 'vFrete');
+        const outros = num(prod, 'vOutro');
+        const ipi = num(det, 'vIPI');
+        const desconto = num(prod, 'vDesc');
+        const ncm = txt(prod, 'NCM') || '00000000';
+        const cfop = txt(prod, 'CFOP');
         const categoria = buscarCategoria(ncm);
-        const cfop = prod.getElementsByTagName('CFOP')[0]?.textContent || '';
-        const impostoTag = prod.parentNode.querySelector('ICMS, ICMSSN101, ICMSSN102');
-        let cst = '000';
-        let vICMS = 0;
-        let alqInter = 0.12;
-        if (impostoTag) {
-          const cstTag = impostoTag.querySelector('CST') || impostoTag.querySelector('CSOSN');
-          if (cstTag) cst = cstTag.textContent.trim();
-          const vICMSTag = impostoTag.querySelector('vICMS');
-          if (vICMSTag) vICMS = parseFloat(vICMSTag.textContent);
-          const alqTag = impostoTag.querySelector('pICMS');
-          if (alqTag) alqInter = parseFloat(alqTag.textContent) / 100;
-        }
+
+        // Grupo do ICMS (ICMS00, ICMS60, ICMSSN102 etc.)
+        const imposto = det.getElementsByTagName('imposto')[0];
+        const grupoICMS = imposto?.getElementsByTagName('ICMS')[0]?.children[0] || null;
+        const cst = grupoICMS ? (txt(grupoICMS, 'CST') || txt(grupoICMS, 'CSOSN') || '000') : '000';
+        const vICMS = grupoICMS ? num(grupoICMS, 'vICMS') : 0;
+        const pICMS = grupoICMS ? txt(grupoICMS, 'pICMS') : '';
+        const alqInter = pICMS ? parseFloat(pICMS) / 100 : 0.12;
 
         const row = tbody.insertRow();
         row.insertCell(0).textContent = nome;
         row.insertCell(1).textContent = cfop;
         row.insertCell(2).textContent = cst;
         row.insertCell(3).textContent = ncm;
+
         const qtdCell = row.insertCell(4);
         const qtdInput = document.createElement('input');
         qtdInput.type = 'number';
         qtdInput.value = qtd;
         qtdInput.style.width = '60px';
         qtdCell.appendChild(qtdInput);
+
         row.insertCell(5).textContent = brl(valorProd);
         row.insertCell(6).textContent = brl(outros);
         row.insertCell(7).textContent = brl(ipi);
@@ -270,6 +305,7 @@
         const efetivoCell = row.insertCell(13);
 
         const baseCalculo = valorProd + frete + ipi + outros - desconto;
+        const finalCST = cst.slice(-2);
 
         if (CRT === '1') {
           categoriaCell.textContent = 'Fornecedor do Simples Nacional, verifique com a contabilidade o imposto da nota';
@@ -278,8 +314,8 @@
           custoCell.textContent = brl(baseCalculo);
           custoCell.className = 'highlight-custo';
           efetivoCell.textContent = '-';
-        } else if (CRT === '3' && ['10', '40', '41', '60'].includes(cst.slice(-2))) {
-          const finalCST = cst.slice(-2);
+          qtdInput.disabled = true;
+        } else if (CRT === '3' && ['10', '40', '41', '60'].includes(finalCST)) {
           if (finalCST === '10' || finalCST === '60') categoriaCell.textContent = 'ICMS cobrado anteriormente';
           if (finalCST === '40') categoriaCell.textContent = 'Produto isento de ICMS';
           if (finalCST === '41') categoriaCell.textContent = 'Produto não tributado';
@@ -288,6 +324,7 @@
           custoCell.textContent = brl(baseCalculo);
           custoCell.className = 'highlight-custo';
           efetivoCell.textContent = '-';
+          qtdInput.disabled = true;
         } else if (!categoria) {
           categoriaCell.textContent = 'NCM não encontrado na planilha';
           impostoCell.textContent = 'Erro';
@@ -296,14 +333,15 @@
           efetivoCell.textContent = 'Erro';
         } else {
           const mvaOriginal = categoria.mva || 0;
-          const mvaAjustada = cfop.startsWith('6')
+          const interestadual = cfop.startsWith('6');
+          const mvaAjustada = interestadual
             ? (((1 + mvaOriginal) * (1 - alqInter)) / (1 - ALQ_FIXA)) - 1
             : mvaOriginal;
 
-          const icmsST = ((baseCalculo * (1 + mvaAjustada)) * ALQ_FIXA) - vICMS;
+          const icmsST = (baseCalculo * (1 + mvaAjustada) * ALQ_FIXA) - vICMS;
           totalImpostoNota += icmsST;
-
           const total = baseCalculo + icmsST;
+          const percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
 
           const calcularCusto = () => {
             const qAtual = parseFloat(qtdInput.value) || 0;
@@ -321,23 +359,23 @@
             salvarProdutos();
           };
 
-          const percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
-
           categoriaCell.textContent = `${categoria.descricao} (${(mvaAjustada * 100).toFixed(2)}%)`;
           impostoCell.textContent = brl(icmsST);
           impostoCell.className = 'highlight-imposto';
           totalCell.textContent = brl(total);
-          calcularCusto();
           custoCell.className = 'highlight-custo';
           efetivoCell.textContent = percEfetivo.toFixed(2) + '%';
-          if (cfop.startsWith('6')) {
-            alertaEl.textContent = `⚠️ O fornecedor é de fora do estado. A alíquota foi ajustada com base na MVA Ajustada: ${(mvaAjustada * 100).toFixed(2)}%`;
-          }
+          calcularCusto();
           qtdInput.addEventListener('input', calcularCusto);
+
+          if (interestadual) {
+            avisos.add(`⚠️ Fornecedor de fora do estado. MVA ajustada aplicada (ex.: ${(mvaAjustada * 100).toFixed(2)}% no NCM ${ncm}).`);
+          }
         }
       }
 
-      document.getElementById('totalImpostoInfo').textContent = `Total Imposto: ${brl(totalImpostoNota)}`;
+      $('totalImpostoInfo').textContent = `Total Imposto: ${brl(totalImpostoNota)}`;
+      mostrarAvisos([...avisos]);
       salvarProdutos();
     });
   </script>
