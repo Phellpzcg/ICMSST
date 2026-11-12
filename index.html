@@ -10,15 +10,17 @@
     header img { height: 50px; margin-right: 20px; }
     header h1 { font-size: 1.5rem; margin: 0; }
     .upload-section { text-align: center; margin: 20px 0; }
-    button { padding: 10px 20px; background-color: #f1c40f; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+    button { padding: 10px 20px; background-color: #f1c40f; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin: 0 5px; }
     input[type="file"] { display: none; }
-    .info-box { display: flex; justify-content: space-around; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; margin: 20px; font-weight: bold; }
     #statusPlanilha { text-align: center; font-size: 13px; margin-bottom: 10px; color: #555; }
     #statusPlanilha.erro { color: #d9534f; font-weight: bold; }
     #statusPlanilha.ok { color: #2e7d32; }
+    .info-box { display: flex; justify-content: space-around; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; margin: 20px; font-weight: bold; }
+    #alerta { text-align: center; color: #d9534f; font-weight: bold; }
+    .tabela-wrapper { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; margin: 0 0 30px 0; font-size: 12px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background-color: #333; color: #f1c40f; position: sticky; top: 0; }
+    th { background-color: #333; color: #f1c40f; position: sticky; top: 0; z-index: 1; }
     tr:nth-child(even) { background-color: #f2f2f2; }
     .highlight-imposto { background-color: #ffdddd; font-weight: bold; }
     .highlight-custo { background-color: #ddffdd; font-weight: bold; }
@@ -33,7 +35,7 @@
 
   <div class="upload-section">
     <input type="file" id="xmlFileInput" accept=".xml">
-    <button onclick="document.getElementById('xmlFileInput').click()">Selecionar XML</button>
+    <button id="btnSelecionar">Selecionar XML</button>
     <button onclick="window.location.href='analise-de-venda.html'">Acessar Análise de Venda</button>
   </div>
 
@@ -44,29 +46,31 @@
     <span id="notaInfo">Nota Fiscal: -</span>
     <span id="totalImpostoInfo">Total Imposto: R$ 0,00</span>
   </div>
-  <div id="alerta" style="text-align:center;color:#d9534f;font-weight:bold;"></div>
+  <div id="alerta"></div>
 
-  <table id="productTable">
-    <thead>
-      <tr>
-        <th>Descrição</th>
-        <th>CFOP</th>
-        <th>CST</th>
-        <th>NCM</th>
-        <th>Quantidade</th>
-        <th>R$ Total Produto</th>
-        <th>Outros</th>
-        <th>IPI</th>
-        <th>Desconto</th>
-        <th>Categoria</th>
-        <th class="highlight-imposto">R$ Imposto</th>
-        <th>Total</th>
-        <th class="highlight-custo">Custo Final</th>
-        <th>% Efetivo</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="tabela-wrapper">
+    <table id="productTable">
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th>CFOP</th>
+          <th>CST</th>
+          <th>NCM</th>
+          <th>Quantidade</th>
+          <th>R$ Total Produto</th>
+          <th>Outros</th>
+          <th>IPI</th>
+          <th>Desconto</th>
+          <th>Categoria</th>
+          <th class="highlight-imposto">R$ Imposto</th>
+          <th>Total</th>
+          <th class="highlight-custo">Custo Final</th>
+          <th>% Efetivo</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <footer>
     <p>Todos os direitos reservados Domínio Farma Contabilidade | site: dominiofarma.com | Suporte: 74 99151-2553</p>
@@ -87,13 +91,17 @@
 
     const statusEl = document.getElementById('statusPlanilha');
     const alertaEl = document.getElementById('alerta');
+    const inputXml = document.getElementById('xmlFileInput');
 
-    const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('btnSelecionar').addEventListener('click', () => inputXml.click());
 
-    // Salva para a página Análise de Venda; falha em silêncio se o armazenamento estiver bloqueado
+    const brl = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    // Salva para a página Análise de Venda. Falha em silêncio se o armazenamento estiver bloqueado.
     function salvarProdutos() {
+      const lista = produtosCalculados.filter(Boolean);
       try {
-        localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
+        localStorage.setItem('produtosCalculados', JSON.stringify(lista));
       } catch (e) {}
     }
 
@@ -109,7 +117,7 @@
       return parseFloat(String(v || '0').replace(',', '.')) || 0;
     }
 
-    // Lê a planilha pela API oficial de visualização do Google (aceita CORS em planilhas públicas)
+    // Lê a planilha pela API de visualização do Google (funciona com planilhas "Qualquer pessoa com o link")
     async function lerPlanilhaGoogle() {
       const url = `https://docs.google.com/spreadsheets/d/${PLANILHA_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(ABA)}`;
       const texto = await (await fetch(url)).text();
@@ -178,12 +186,11 @@
       return null;
     }
 
-    // Promise que o processamento do XML aguarda, evitando corrida com o carregamento
+    // O processamento do XML aguarda esta promise, evitando corrida com o carregamento
     const planilhaPronta = carregarPlanilha()
       .then(mapa => {
         ncmMvaMap = mapa;
-        const total = Object.keys(mapa).length;
-        statusEl.textContent = `Planilha de MVA carregada com ${total} registros`;
+        statusEl.textContent = `Planilha de MVA carregada com ${Object.keys(mapa).length} registros`;
         statusEl.className = 'ok';
       })
       .catch(err => {
@@ -192,7 +199,7 @@
         statusEl.className = 'erro';
       });
 
-    document.getElementById('xmlFileInput').addEventListener('change', async function (event) {
+    inputXml.addEventListener('change', async function (event) {
       const file = event.target.files[0];
       if (!file) return;
 
