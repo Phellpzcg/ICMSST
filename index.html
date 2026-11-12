@@ -90,6 +90,13 @@
 
     const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+    // Salva para a página Análise de Venda; falha em silêncio se o armazenamento estiver bloqueado
+    function salvarProdutos() {
+      try {
+        localStorage.setItem('produtosCalculados', JSON.stringify(produtosCalculados));
+      } catch (e) {}
+    }
+
     function normalizarChave(s) {
       return String(s || '')
         .toLowerCase()
@@ -304,6 +311,7 @@
               margemSN: categoria.margemSN,
               margemLP: categoria.margemLP
             };
+            salvarProdutos();
           };
 
           const percEfetivo = valorProd > 0 ? (icmsST / valorProd) * 100 : 0;
@@ -323,6 +331,7 @@
       }
 
       document.getElementById('totalImpostoInfo').textContent = `Total Imposto: ${brl(totalImpostoNota)}`;
+      salvarProdutos();
     });
   </script>
 </body>
